@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Watermark Pro - Bảo Mật, Chống Copy & Đóng Dấu Hàng Loạt</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- pdf-lib & fontkit -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@0.0.4/dist/fontkit.umd.min.js"></script>
+  <!-- PDF.js for Live Preview & Flattening -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- JSZip & FileSaver for Batch Download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+          <i class="ph-bold ph-stamp text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-900 leading-tight flex items-center gap-2">
+            PDF Watermark Pro
+            <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+              <i class="ph-bold ph-shield-check text-emerald-600"></i> 100% Client-Side
+            </span>
+          </h1>
+          <p class="text-xs text-slate-500">Chèn watermark, khóa chọn text & phân phối tài liệu hàng loạt</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button onclick="openSecurityModal()" class="px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5">
+          <i class="ph-bold ph-lock-key text-blue-600"></i> Cam kết bảo mật
+        </button>
+        <button onclick="resetAllData(true)" class="px-3 py-1.5 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors flex items-center gap-1.5" title="Xóa sạch dữ liệu trong RAM">
+          <i class="ph-bold ph-trash"></i> Xóa sạch phiên làm việc
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ZERO-DATA GUARANTEE BANNER -->
+  <div class="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white text-xs py-2 px-4 shadow-inner">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+        <span class="font-bold">BẢO MẬT TUYỆT ĐỐI:</span>
+        <span>Toàn bộ file PDF và tên người nhận chỉ được xử lý tạm trong RAM trình duyệt của máy bạn. Không lưu trữ, không có server backend, không tải lên internet.</span>
+      </div>
+      <span class="opacity-90 text-[11px] hidden sm:inline underline cursor-pointer" onclick="openSecurityModal()">Xem cách kiểm tra bằng F12 &rarr;</span>
+    </div>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+    
+    <!-- MODE TABS -->
+    <div class="flex border-b border-slate-200 mb-6 gap-2">
+      <button id="tabModeRecipient" onclick="switchMode('recipient')" class="pb-3 px-4 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition-all">
+        <i class="ph-bold ph-users text-lg"></i>
+        Phát tài liệu theo danh sách người nhận (1 file PDF &rarr; N người)
+      </button>
+      <button id="tabModeBatch" onclick="switchMode('batch')" class="pb-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all">
+        <i class="ph-bold ph-files text-lg"></i>
+        Đóng dấu hàng loạt nhiều file (N file PDF &rarr; Cùng 1 watermark)
+      </button>
+    </div>
+
+    <!-- WORKSPACE: 2 COLUMNS -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- LEFT: SETTINGS & INPUTS (7 COLS) -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- STEP 1: UPLOAD PDF -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">1</span>
+              <span id="uploadHeading">Chọn file tài liệu PDF gốc</span>
+            </h2>
+            <div class="flex items-center gap-2">
+              <button onclick="generateSamplePdf()" class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                <i class="ph-bold ph-magic-wand"></i> Tạo PDF mẫu thử
+              </button>
+              <span class="text-slate-300">|</span>
+              <span id="fileCountBadge" class="text-xs font-medium text-slate-500">Chưa có file</span>
+            </div>
+          </div>
+
+          <!-- DROP ZONE -->
+          <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-5 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-blue-50/20">
+            <input type="file" id="pdfFileInput" class="hidden" accept=".pdf" />
+            <div class="flex flex-col items-center justify-center pointer-events-none">
+              <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                <i class="ph-duotone ph-file-pdf text-3xl"></i>
+              </div>
+              <p class="text-sm font-semibold text-slate-700">Kéo & thả file PDF vào đây, hoặc <span class="text-blue-600 underline">chọn từ máy tính</span></p>
+              <p id="uploadSubtext" class="text-xs text-slate-400 mt-1">Hỗ trợ mọi kích thước file PDF (A4, Letter, văn bản nhiều trang)</p>
+            </div>
+          </div>
+
+          <!-- SELECTED FILE INFO -->
+          <div id="selectedFileInfo" class="hidden mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2.5 overflow-hidden">
+              <i class="ph-fill ph-file-pdf text-red-500 text-2xl flex-shrink-0"></i>
+              <div class="truncate">
+                <p id="selectedFileName" class="font-semibold text-slate-800 truncate">document.pdf</p>
+                <p id="selectedFileMeta" class="text-slate-500 text-[11px]">0 KB &bull; 0 trang</p>
+              </div>
+            </div>
+            <button onclick="clearSelectedFiles()" class="text-slate-400 hover:text-red-500 p-1.5 rounded transition-colors" title="Bỏ chọn file">
+              <i class="ph-bold ph-x text-base"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 2: RECIPIENT NAMES / BATCH WATERMARK TEXT -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">2</span>
+              <span id="contentStepHeading">Danh sách người nhận (Mỗi dòng 1 người)</span>
+            </h2>
+            <div class="flex items-center gap-2">
+              <button id="btnSampleNames" onclick="loadSampleNames()" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                Dán 5 tên mẫu
+              </button>
+              <span class="text-slate-300">|</span>
+              <button onclick="clearNamesInput()" class="text-xs text-slate-400 hover:text-red-500">
+                Xóa trắng
+              </button>
+            </div>
+          </div>
+
+          <!-- RECIPIENT MODE TEXTAREA -->
+          <div id="recipientInputSection">
+            <textarea id="recipientListInput" rows="5" class="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 custom-scroll leading-relaxed" placeholder="Nguyễn Văn An&#10;Trần Thị Bích Ngọc&#10;Lê Hoàng Nam&#10;Phạm Minh Tuấn&#10;Võ Thị Mai Phương"></textarea>
+            <div class="flex items-center justify-between mt-2 text-xs text-slate-500">
+              <span id="recipientCountText">Đã phát hiện: <strong>0</strong> người nhận</span>
+              <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 select-none">
+                <input type="checkbox" id="chkAutoUppercase" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="updatePreview()">
+                <span>Tự động VIẾT HOA tên</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- BATCH FIXED TEXT -->
+          <div id="batchInputSection" class="hidden space-y-2">
+            <input type="text" id="batchWatermarkText" class="w-full text-sm p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="VD: BẢN LƯU HÀNH NỘI BỘ - BẢO MẬT" value="BẢN LƯU HÀNH NỘI BỘ" oninput="updatePreview()" />
+            <p class="text-[11px] text-slate-400">Nội dung này sẽ được đóng dấu lên tất cả các file PDF bạn tải lên.</p>
+          </div>
+
+          <!-- TEMPLATE & SUBTEXT -->
+          <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Mẫu hiển thị (Template)</label>
+              <input type="text" id="watermarkTemplate" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500" value="{name}" placeholder="{name}" oninput="updatePreview()" />
+              <p class="text-[10px] text-slate-400 mt-0.5">Dùng <code>{name}</code> để đại diện cho tên người nhận</p>
+            </div>
+            <div>
+              <label class="block font-medium text-slate-700 mb-1">Dòng phụ bên dưới (Tùy chọn)</label>
+              <input type="text" id="watermarkSubtext" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500" placeholder="VD: TUYỆT MẬT - KHÔNG SAO CHÉP" oninput="updatePreview()" />
+              <p class="text-[10px] text-slate-400 mt-0.5">Hiển thị chữ nhỏ ngay dưới tên chính</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: WATERMARK STYLING CONTROLS -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+          <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">3</span>
+            <span>Tùy chỉnh kiểu dáng & vị trí Watermark</span>
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            
+            <!-- LAYOUT -->
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Kiểu bố trí (Layout)</label>
+              <select id="wmLayout" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500 bg-white" onchange="updatePreview()">
+                <option value="center" selected>Chính giữa trang (1 chữ lớn - Khuyên dùng)</option>
+                <option value="grid">Lưới chéo phủ toàn trang (Chống tẩy xóa)</option>
+                <option value="bottom">Dưới chân trang (Footer)</option>
+                <option value="top">Đầu trang (Header)</option>
+              </select>
+            </div>
+
+            <!-- ROTATION ANGLE -->
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Góc nghiêng xoay chữ</label>
+              <div class="grid grid-cols-4 gap-1.5">
+                <button type="button" onclick="setAngle(0)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="0">0° (Ngang)</button>
+                <button type="button" onclick="setAngle(30)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="30">30°</button>
+                <button type="button" onclick="setAngle(45)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-blue-600 bg-blue-50 text-blue-700" data-angle="45">45° (Chéo)</button>
+                <button type="button" onclick="setAngle(-45)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="-45">-45°</button>
+              </div>
+            </div>
+
+            <!-- FONT SIZE -->
+            <div>
+              <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                <label>Cỡ chữ (Font Size)</label>
+                <span id="lblFontSize" class="text-blue-600 font-mono">42px</span>
+              </div>
+              <input type="range" id="wmFontSize" min="16" max="90" value="42" class="w-full accent-blue-600 cursor-pointer" oninput="updateFontSize(this.value)">
+            </div>
+
+            <!-- OPACITY -->
+            <div>
+              <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                <label>Độ trong suốt (Opacity)</label>
+                <span id="lblOpacity" class="text-blue-600 font-mono">20%</span>
+              </div>
+              <input type="range" id="wmOpacity" min="5" max="80" value="20" class="w-full accent-blue-600 cursor-pointer" oninput="updateOpacity(this.value)">
+            </div>
+
+            <!-- COLOR PRESETS -->
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Màu sắc Watermark</label>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="setColor('#64748b')" class="color-btn w-7 h-7 rounded-full bg-slate-500 ring-2 ring-offset-2 ring-blue-500 transition-all" data-color="#64748b" title="Xám chuẩn"></button>
+                <button type="button" onclick="setColor('#ef4444')" class="color-btn w-7 h-7 rounded-full bg-red-500 hover:opacity-80 transition-all" data-color="#ef4444" title="Đỏ cảnh báo"></button>
+                <button type="button" onclick="setColor('#2563eb')" class="color-btn w-7 h-7 rounded-full bg-blue-600 hover:opacity-80 transition-all" data-color="#2563eb" title="Xanh doanh nghiệp"></button>
+                <button type="button" onclick="setColor('#0f172a')" class="color-btn w-7 h-7 rounded-full bg-slate-900 hover:opacity-80 transition-all" data-color="#0f172a" title="Đen đậm"></button>
+                <input type="color" id="customColorPicker" value="#64748b" onchange="setColor(this.value)" class="w-7 h-7 rounded cursor-pointer border border-slate-300" title="Tự chọn màu khác">
+              </div>
+            </div>
+
+            <!-- PAGE RANGE -->
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Trang áp dụng</label>
+              <select id="wmPageRange" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500 bg-white" onchange="updatePreview()">
+                <option value="all">Tất cả các trang</option>
+                <option value="first">Chỉ trang đầu tiên</option>
+                <option value="from2">Từ trang 2 trở đi (Bỏ trang bìa)</option>
+              </select>
+            </div>
+
+          </div>
+
+          <!-- VIETNAMESE ACCENTS & FONT STATUS -->
+          <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+              <span id="fontStatusBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <i class="ph-bold ph-check-circle"></i> Font tiếng Việt Roboto sẵn sàng
+              </span>
+            </div>
+            <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 select-none">
+              <input type="checkbox" id="chkRemoveAccents" class="rounded text-blue-600 focus:ring-blue-500" onchange="updatePreview()">
+              <span>Chuyển thành chữ không dấu (VD: NGUYEN VAN A)</span>
+            </label>
+          </div>
+
+        </div>
+
+        <!-- STEP 3.5: ANTI-COPY / FLATTEN PROTECTION -->
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-sm space-y-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center flex-shrink-0 text-xl shadow-md shadow-amber-500/20">
+                <i class="ph-bold ph-lock-key"></i>
+              </div>
+              <div>
+                <label for="chkAntiCopy" class="font-bold text-sm text-slate-900 cursor-pointer flex items-center gap-2">
+                  Khóa chọn chữ & Chống sao chép văn bản tuyệt đối (Anti-Copy)
+                  <span class="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300">Khuyên dùng</span>
+                </label>
+                <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                  Ngăn chặn 100% hành vi bôi đen chọn chữ, copy nội dung ra ngoài hoặc dùng phần mềm chỉnh sửa PDF để xóa watermark.
+                </p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-1">
+              <input type="checkbox" id="chkAntiCopy" class="sr-only peer" onchange="toggleAntiCopy(this.checked)">
+              <div class="w-12 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+            </label>
+          </div>
+
+          <div id="antiCopyDetails" class="hidden text-xs bg-white/90 p-3.5 rounded-xl border border-amber-200/80 space-y-2">
+            <div class="flex items-center gap-2 text-slate-800 font-semibold">
+              <i class="ph-fill ph-shield-check text-amber-600 text-base"></i>
+              <span>Cơ chế bảo mật Flatten HD:</span>
+            </div>
+            <ul class="list-disc list-inside space-y-1 text-slate-600 text-[11px] leading-relaxed">
+              <li><strong>Không thể bôi đen (No text selection):</strong> Các trang PDF được nén phẳng thành ảnh độ nét cao (HD 150 DPI). File hoàn toàn không còn lớp text để copy.</li>
+              <li><strong>Watermark không thể bị xóa:</strong> Tên người nhận được hòa trộn trực tiếp vào từng pixel hình ảnh của trang, không một phần mềm chỉnh sửa PDF nào có thể tách rời.</li>
+              <li><strong>Chất lượng in & đọc tuyệt vời:</strong> Người nhận vẫn đọc rõ ràng từng nét chữ trên máy tính, điện thoại hoặc in ra giấy.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- STEP 4: ACTION & PROGRESS -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div class="text-xs text-slate-500">
+              <p id="summaryText">Chưa sẵn sàng xử lý. Vui lòng tải file PDF lên.</p>
+            </div>
+            <button id="btnProcessBatch" onclick="startBatchProcessing()" disabled class="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all">
+              <i class="ph-bold ph-lightning text-lg"></i>
+              <span id="btnProcessLabel">BẮT ĐẦU ĐÓNG DẤU & XUẤT ZIP</span>
+            </button>
+          </div>
+
+          <!-- PROGRESS BAR -->
+          <div id="progressSection" class="hidden space-y-2 pt-2 border-t border-slate-100">
+            <div class="flex justify-between text-xs font-semibold">
+              <span id="progressStatusText" class="text-blue-700 flex items-center gap-1.5">
+                <i class="ph-bold ph-spinner animate-spin"></i> Đang xử lý...
+              </span>
+              <span id="progressPercentageText" class="text-slate-600 font-mono">0%</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
+              <div id="progressBarFill" class="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-150" style="width: 0%"></div>
+            </div>
+            <p id="progressDetailText" class="text-[11px] text-slate-400 font-mono truncate">Khởi tạo môi trường...</p>
+          </div>
+
+          <!-- SUCCESS BOX -->
+          <div id="successBox" class="hidden p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3">
+            <div class="flex items-center gap-2 text-emerald-800 font-semibold text-sm">
+              <i class="ph-bold ph-check-circle text-xl text-emerald-600"></i>
+              <span>Hoàn tất thành công! Đã tự động tải file ZIP về máy.</span>
+            </div>
+            <p id="successDetailText" class="text-xs text-emerald-700">Tất cả file PDF đã được đóng dấu với chất lượng vector nguyên bản 100%.</p>
+            <div class="flex items-center gap-3">
+              <button id="btnReDownloadZip" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                <i class="ph-bold ph-download-simple"></i> Tải lại file ZIP
+              </button>
+              <button onclick="resetAllData(false)" class="text-xs text-emerald-800 hover:underline">
+                Đóng dấu tiếp phiên khác
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- RIGHT: LIVE PREVIEW (5 COLS) -->
+      <div class="lg:col-span-5 space-y-4">
+        
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sticky top-20">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="ph-bold ph-eye text-blue-600 text-base"></i>
+              <span>Xem trước thời gian thực (Live Preview)</span>
+            </h2>
+            <div class="flex items-center gap-1 text-[11px]">
+              <button id="btnPrevPage" onclick="changePreviewPage(-1)" disabled class="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+                <i class="ph-bold ph-caret-left"></i>
+              </button>
+              <span id="previewPageIndicator" class="font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Trang 1 / 1</span>
+              <button id="btnNextPage" onclick="changePreviewPage(1)" disabled class="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+                <i class="ph-bold ph-caret-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- CANVAS WRAPPER -->
+          <div class="relative bg-slate-100 rounded-xl overflow-hidden border border-slate-200 min-h-[460px] flex items-center justify-center p-3 select-none">
+            
+            <!-- EMPTY STATE -->
+            <div id="previewEmptyState" class="text-center p-6 space-y-2">
+              <div class="w-12 h-12 rounded-full bg-slate-200/70 text-slate-400 flex items-center justify-center mx-auto">
+                <i class="ph-duotone ph-file-magnifying-glass text-2xl"></i>
+              </div>
+              <p class="text-xs font-semibold text-slate-600">Chưa tải file PDF</p>
+              <p class="text-[11px] text-slate-400 max-w-[220px] mx-auto">Hãy tải tài liệu PDF lên hoặc bấm nút <strong class="text-blue-600 cursor-pointer" onclick="generateSamplePdf()">"Tạo PDF mẫu thử"</strong> để xem trực quan</p>
+            </div>
+
+            <!-- CANVAS CONTAINER -->
+            <div id="previewCanvasContainer" class="hidden relative max-w-full max-h-[580px] shadow-lg rounded overflow-hidden">
+              <canvas id="pdfPreviewCanvas" class="block max-w-full h-auto bg-white"></canvas>
+              <canvas id="watermarkPreviewCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+            </div>
+
+            <!-- SAMPLE NAME BADGE -->
+            <div id="previewSampleBadge" class="hidden absolute top-2 right-2 flex flex-col items-end gap-1 pointer-events-none">
+              <div class="bg-slate-900/80 backdrop-blur text-white text-[10px] px-2.5 py-1 rounded-full shadow">
+                Mẫu: <span id="lblPreviewName" class="font-semibold text-blue-300">NGUYỄN VĂN AN</span>
+              </div>
+              <div id="antiCopyStatusPill" class="hidden bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-1">
+                <i class="ph-bold ph-lock-key"></i> ĐÃ BẬT CHỐNG COPY
+              </div>
+            </div>
+
+          </div>
+
+          <div class="mt-3 flex items-center justify-between text-[11px] text-slate-400">
+            <span class="flex items-center gap-1"><i class="ph-bold ph-check"></i> Xem đúng tỷ lệ & độ mờ thực tế</span>
+            <span class="flex items-center gap-1"><i class="ph-bold ph-arrows-out-simple"></i> Thu phóng tự động theo khung</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- SECURITY MODAL -->
+  <div id="securityModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+            <i class="ph-bold ph-shield-check"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-800">Cam Kết Bảo Mật 100% Cục Bộ</h3>
+            <p class="text-xs text-slate-500">Tuyệt đối không lưu trữ hay rò rỉ dữ liệu</p>
+          </div>
+        </div>
+        <button onclick="closeSecurityModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <p class="font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="ph-fill ph-check-circle text-emerald-600"></i> Xử lý thuần Client-side trong RAM máy tính
+          </p>
+          <p>Ứng dụng được viết hoàn toàn bằng HTML & Javascript chạy trực tiếp trong trình duyệt của bạn (Chrome, Edge, Firefox). Không có máy chủ (server backend) nào được kết nối.</p>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <p class="font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="ph-fill ph-check-circle text-emerald-600"></i> Không lưu Cookie, LocalStorage hay Database
+          </p>
+          <p>Tài liệu PDF gốc, danh sách họ tên người nhận và các file đã đóng dấu chỉ tồn tại trong bộ nhớ RAM tạm thời của tab trình duyệt. Ngay khi bạn bấm <strong>F5 (Refresh)</strong> hoặc <strong>Đóng tab</strong>, trình duyệt sẽ tự động giải phóng RAM và xóa sạch 100%.</p>
+        </div>
+
+        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <p class="font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="ph-fill ph-check-circle text-emerald-600"></i> Cách tự kiểm tra bằng mắt thường:
+          </p>
+          <ol class="list-decimal list-inside space-y-1 text-slate-500">
+            <li>Nhấn phím <kbd class="px-1.5 py-0.5 bg-slate-200 rounded text-[10px] font-mono">F12</kbd> &rarr; chọn tab <strong>Network</strong>.</li>
+            <li>Bấm bắt đầu đóng dấu: bạn sẽ thấy <strong>0 byte</strong> nào được gửi lên mạng.</li>
+            <li>Bạn có thể ngắt kết nối mạng Internet (rút dây mạng hoặc ngắt Wi-Fi) trước khi tải file PDF lên để yên tâm tuyệt đối.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button onclick="closeSecurityModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold">
+          Tôi đã hiểu & yên tâm sử dụng
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // Set PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // State Variables
+    let currentMode = 'recipient'; // 'recipient' | 'batch'
+    let selectedFiles = []; // Array of File objects
+    let originalPdfBytes = null; // Uint8Array of selected single PDF
+    let pdfDocPreview = null; // PDF.js doc for rendering preview
+    let currentPreviewPage = 1;
+    let totalPreviewPages = 1;
+    let previewViewport = null;
+    let customFontBytes = null; // Roboto font bytes for Vietnamese
+    let lastGeneratedZipBlob = null;
+
+    // Watermark Configuration
+    let config = {
+      angle: 45,
+      fontSize: 42,
+      opacity: 0.20,
+      color: '#64748b',
+      layout: 'center',
+      pageRange: 'all',
+      template: '{name}',
+      subtext: '',
+      autoUppercase: true,
+      removeAccents: false,
+      antiCopy: false // Anti-Copy / Flatten to image
+    };
+
+    // Toggle Anti-Copy
+    function toggleAntiCopy(checked) {
+      config.antiCopy = checked;
+      const details = document.getElementById('antiCopyDetails');
+      const pill = document.getElementById('antiCopyStatusPill');
+
+      if (checked) {
+        details.classList.remove('hidden');
+        pill.classList.remove('hidden');
+      } else {
+        details.classList.add('hidden');
+        pill.classList.add('hidden');
+      }
+
+      updateSummary();
+    }
+
+    // Initialize custom font (Roboto-Medium with full Vietnamese Unicode)
+    async function initFont() {
+      const badge = document.getElementById('fontStatusBadge');
+      try {
+        const fontUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/fonts/Roboto/Roboto-Medium.ttf';
+        const res = await fetch(fontUrl);
+        if (res.ok) {
+          customFontBytes = await res.arrayBuffer();
+          badge.innerHTML = '<i class="ph-bold ph-check-circle"></i> Font tiếng Việt (Roboto) sẵn sàng';
+          badge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200';
+        } else {
+          throw new Error('Status ' + res.status);
+        }
+      } catch (err) {
+        console.warn('Cannot load online font, fallback to standard font (unaccented):', err);
+        badge.innerHTML = '<i class="ph-bold ph-info"></i> Chế độ Offline (Chữ không dấu)';
+        badge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200';
+      }
+    }
+    initFont();
+
+    // Mode Switching
+    function switchMode(mode) {
+      currentMode = mode;
+      const tabRec = document.getElementById('tabModeRecipient');
+      const tabBatch = document.getElementById('tabModeBatch');
+      const recSection = document.getElementById('recipientInputSection');
+      const batchSection = document.getElementById('batchInputSection');
+      const contentStepHeading = document.getElementById('contentStepHeading');
+      const uploadHeading = document.getElementById('uploadHeading');
+      const uploadSubtext = document.getElementById('uploadSubtext');
+      const fileInput = document.getElementById('pdfFileInput');
+      const btnSample = document.getElementById('btnSampleNames');
+
+      if (mode === 'recipient') {
+        tabRec.className = 'pb-3 px-4 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition-all';
+        tabBatch.className = 'pb-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all';
+        recSection.classList.remove('hidden');
+        batchSection.classList.add('hidden');
+        contentStepHeading.innerText = 'Danh sách người nhận (Mỗi dòng 1 người)';
+        uploadHeading.innerText = 'Chọn file tài liệu PDF gốc';
+        uploadSubtext.innerText = 'Tải lên 1 file PDF gốc cần phát cho nhiều người';
+        fileInput.removeAttribute('multiple');
+        btnSample.classList.remove('hidden');
+      } else {
+        tabBatch.className = 'pb-3 px-4 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition-all';
+        tabRec.className = 'pb-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all';
+        recSection.classList.add('hidden');
+        batchSection.classList.remove('hidden');
+        contentStepHeading.innerText = 'Nội dung Watermark cố định';
+        uploadHeading.innerText = 'Chọn các file PDF cần đóng dấu';
+        uploadSubtext.innerText = 'Có thể chọn nhiều file PDF cùng lúc';
+        fileInput.setAttribute('multiple', 'true');
+        btnSample.classList.add('hidden');
+      }
+
+      updateSummary();
+      updatePreview();
+    }
+
+    // Drag and Drop
+    const dropZone = document.getElementById('dropZone');
+    const pdfFileInput = document.getElementById('pdfFileInput');
+
+    dropZone.addEventListener('click', () => pdfFileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-blue-600', 'bg-blue-50/50');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-blue-600', 'bg-blue-50/50');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-blue-600', 'bg-blue-50/50');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFilesSelected(Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.pdf')));
+      }
+    });
+    pdfFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFilesSelected(Array.from(e.target.files));
+      }
+    });
+
+    // Handle Selected Files
+    async function handleFilesSelected(files) {
+      if (!files || files.length === 0) return;
+
+      if (currentMode === 'recipient') {
+        selectedFiles = [files[0]];
+      } else {
+        selectedFiles = files;
+      }
+
+      const primaryFile = selectedFiles[0];
+      const buffer = await primaryFile.arrayBuffer();
+      originalPdfBytes = new Uint8Array(buffer);
+
+      document.getElementById('selectedFileInfo').classList.remove('hidden');
+      document.getElementById('selectedFileName').innerText = currentMode === 'recipient' 
+        ? primaryFile.name 
+        : `${selectedFiles.length} file PDF đã chọn (${primaryFile.name}${selectedFiles.length > 1 ? ', ...' : ''})`;
+      
+      const sizeMb = (primaryFile.size / (1024 * 1024)).toFixed(2);
+      document.getElementById('selectedFileMeta').innerText = `${sizeMb} MB &bull; Sẵn sàng đóng dấu`;
+      document.getElementById('fileCountBadge').innerText = `${selectedFiles.length} file`;
+
+      currentPreviewPage = 1;
+      await loadPdfPreview(originalPdfBytes);
+      updateSummary();
+    }
+
+    // Generate Instant Sample PDF (No local file needed)
+    async function generateSamplePdf() {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const doc = await PDFDocument.create();
+      const helvetica = await doc.embedFont(StandardFonts.Helvetica);
+      const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+      // Page 1
+      const page1 = doc.addPage([595, 842]); // A4
+      page1.drawText('CONG TY CO PHAN CONG NGHE & PHAN MEM', { x: 50, y: 780, size: 14, font: helveticaBold, color: rgb(0.1, 0.2, 0.4) });
+      page1.drawText('KE HOACH TRIEN KHAI DU AN QUY 4', { x: 50, y: 740, size: 20, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
+      page1.drawText('Ngay lap: 16/10/2026 | Cap do: Bao mat noi bo', { x: 50, y: 715, size: 10, font: helvetica, color: rgb(0.4, 0.4, 0.4) });
+      
+      page1.drawLine({ start: { x: 50, y: 700 }, end: { x: 545, y: 700 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+
+      page1.drawText('1. MUC TIEU DU AN', { x: 50, y: 660, size: 12, font: helveticaBold, color: rgb(0.2, 0.2, 0.2) });
+      page1.drawText('Tai lieu nay quy dinh chi tiet ve quy trinh phan phoi tai lieu va bao mat du lieu.', { x: 50, y: 640, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+      page1.drawText('Tat ca can bo nhan tai lieu co trach nhiem bao mat tuyet doi thong tin duoc giao.', { x: 50, y: 620, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+
+      page1.drawText('2. QUY DINH PHAN PHOI', { x: 50, y: 570, size: 12, font: helveticaBold, color: rgb(0.2, 0.2, 0.2) });
+      page1.drawText('- Moi ca nhan duoc cap 01 ban tai lieu co dinh danh watermark rieng biet.', { x: 50, y: 550, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+      page1.drawText('- Khong chup anh, sao chep hoac chia se ra ben ngoai khi chua duoc phe duyet.', { x: 50, y: 530, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+
+      // Page 2
+      const page2 = doc.addPage([595, 842]);
+      page2.drawText('3. DANH SACH PHONG BAN AP DUNG', { x: 50, y: 780, size: 14, font: helveticaBold, color: rgb(0.1, 0.2, 0.4) });
+      page2.drawText('- Khoi Cong nghe & Ky thuat phan mem', { x: 50, y: 740, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+      page2.drawText('- Phong Quan ly R&D va Du an chien luoc', { x: 50, y: 720, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+      page2.drawText('- Ban Giam doc va Hoi dong Co dong', { x: 50, y: 700, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+
+      const pdfData = await doc.save();
+      originalPdfBytes = new Uint8Array(pdfData);
+
+      const fakeFile = new File([pdfData], "TaiLieu_Mau_KeHoachQ4.pdf", { type: "application/pdf" });
+      selectedFiles = [fakeFile];
+
+      document.getElementById('selectedFileInfo').classList.remove('hidden');
+      document.getElementById('selectedFileName').innerText = fakeFile.name;
+      document.getElementById('selectedFileMeta').innerText = `14 KB &bull; 2 trang (Tài liệu mẫu)`;
+      document.getElementById('fileCountBadge').innerText = `1 file`;
+
+      loadSampleNames();
+      currentPreviewPage = 1;
+      await loadPdfPreview(originalPdfBytes);
+      updateSummary();
+    }
+
+    function clearSelectedFiles() {
+      selectedFiles = [];
+      originalPdfBytes = null;
+      pdfDocPreview = null;
+      document.getElementById('pdfFileInput').value = '';
+      document.getElementById('selectedFileInfo').classList.add('hidden');
+      document.getElementById('fileCountBadge').innerText = 'Chưa có file';
+      document.getElementById('previewEmptyState').classList.remove('hidden');
+      document.getElementById('previewCanvasContainer').classList.add('hidden');
+      document.getElementById('previewSampleBadge').classList.add('hidden');
+      updateSummary();
+    }
+
+    // Load PDF Preview with PDF.js
+    async function loadPdfPreview(pdfBytes) {
+      try {
+        const loadingTask = pdfjsLib.getDocument({ data: pdfBytes.slice() });
+        pdfDocPreview = await loadingTask.promise;
+        totalPreviewPages = pdfDocPreview.numPages;
+
+        document.getElementById('previewEmptyState').classList.add('hidden');
+        document.getElementById('previewCanvasContainer').classList.remove('hidden');
+        document.getElementById('previewSampleBadge').classList.remove('hidden');
+
+        await renderCurrentPreviewPage();
+      } catch (err) {
+        console.error('Error loading PDF preview:', err);
+      }
+    }
+
+    async function renderCurrentPreviewPage() {
+      if (!pdfDocPreview) return;
+      const page = await pdfDocPreview.getPage(currentPreviewPage);
+
+      const pdfCanvas = document.getElementById('pdfPreviewCanvas');
+      const unscaledViewport = page.getViewport({ scale: 1 });
+      const targetWidth = 420;
+      const scale = targetWidth / unscaledViewport.width;
+      previewViewport = page.getViewport({ scale: scale });
+
+      pdfCanvas.width = previewViewport.width;
+      pdfCanvas.height = previewViewport.height;
+
+      const ctx = pdfCanvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: previewViewport }).promise;
+
+      const wmCanvas = document.getElementById('watermarkPreviewCanvas');
+      wmCanvas.width = previewViewport.width;
+      wmCanvas.height = previewViewport.height;
+
+      // Update Page Controls
+      document.getElementById('previewPageIndicator').innerText = `Trang ${currentPreviewPage} / ${totalPreviewPages}`;
+      document.getElementById('btnPrevPage').disabled = currentPreviewPage <= 1;
+      document.getElementById('btnNextPage').disabled = currentPreviewPage >= totalPreviewPages;
+
+      updatePreview();
+    }
+
+    function changePreviewPage(delta) {
+      const target = currentPreviewPage + delta;
+      if (target >= 1 && target <= totalPreviewPages) {
+        currentPreviewPage = target;
+        renderCurrentPreviewPage();
+      }
+    }
+
+    // Recipient Names Parsing
+    function getRecipients() {
+      const text = document.getElementById('recipientListInput').value;
+      return text.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+    }
+
+    document.getElementById('recipientListInput').addEventListener('input', () => {
+      const list = getRecipients();
+      document.getElementById('recipientCountText').innerHTML = `Đã phát hiện: <strong>${list.length}</strong> người nhận`;
+      updateSummary();
+      updatePreview();
+    });
+
+    function loadSampleNames() {
+      const sample = [
+        'Nguyễn Văn An',
+        'Trần Thị Bích Ngọc',
+        'Lê Hoàng Nam',
+        'Phạm Minh Tuấn',
+        'Võ Thị Mai Phương'
+      ].join('\n');
+      document.getElementById('recipientListInput').value = sample;
+      document.getElementById('recipientCountText').innerHTML = `Đã phát hiện: <strong>5</strong> người nhận`;
+      updateSummary();
+      updatePreview();
+    }
+
+    function clearNamesInput() {
+      document.getElementById('recipientListInput').value = '';
+      document.getElementById('recipientCountText').innerHTML = `Đã phát hiện: <strong>0</strong> người nhận`;
+      updateSummary();
+      updatePreview();
+    }
+
+    // Unaccent helper
+    function removeVietnameseTones(str) {
+      if (!str) return '';
+      str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+      str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+      str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+      str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+      str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+      str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+      str = str.replace(/đ/g, "d");
+      str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+      str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+      str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
+      str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+      str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+      str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+      str = str.replace(/Đ/g, "D");
+      str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, "");
+      str = str.replace(/\u02C6|\u0306|\u031B/g, "");
+      return str;
+    }
+
+    // Format Watermark Text
+    function formatWatermarkText(rawName) {
+      const template = document.getElementById('watermarkTemplate').value || '{name}';
+      const autoUpper = document.getElementById('chkAutoUppercase').checked;
+      const removeAccents = document.getElementById('chkRemoveAccents').checked;
+
+      let name = rawName || 'NGUYỄN VĂN AN';
+      if (removeAccents) {
+        name = removeVietnameseTones(name);
+      }
+      if (autoUpper) {
+        name = name.toUpperCase();
+      }
+
+      let text = template.replace(/\{name\}/g, name);
+      if (removeAccents) {
+        text = removeVietnameseTones(text);
+      }
+      return text;
+    }
+
+    // UI Configuration Handlers
+    function setAngle(deg) {
+      config.angle = deg;
+      document.querySelectorAll('.angle-btn').forEach(btn => {
+        if (parseInt(btn.getAttribute('data-angle')) === deg) {
+          btn.className = 'angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-blue-600 bg-blue-50 text-blue-700';
+        } else {
+          btn.className = 'angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600';
+        }
+      });
+      updatePreview();
+    }
+
+    function updateFontSize(val) {
+      config.fontSize = parseInt(val);
+      document.getElementById('lblFontSize').innerText = val + 'px';
+      updatePreview();
+    }
+
+    function updateOpacity(val) {
+      config.opacity = parseInt(val) / 100;
+      document.getElementById('lblOpacity').innerText = val + '%';
+      updatePreview();
+    }
+
+    function setColor(hex) {
+      config.color = hex;
+      document.getElementById('customColorPicker').value = hex;
+      document.querySelectorAll('.color-btn').forEach(btn => {
+        if (btn.getAttribute('data-color') === hex) {
+          btn.classList.add('ring-2', 'ring-offset-2', 'ring-blue-500');
+        } else {
+          btn.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-500');
+        }
+      });
+      updatePreview();
+    }
+
+    // Check if current preview page is within selected range
+    function isCurrentPageActive(pageNum) {
+      const pageRange = document.getElementById('wmPageRange').value;
+      const targetPage = pageNum || currentPreviewPage;
+      if (pageRange === 'all') return true;
+      if (pageRange === 'first') return targetPage === 1;
+      if (pageRange === 'from2') return targetPage >= 2;
+      return true;
+    }
+
+    // UNIFIED CANVAS WATERMARK DRAWING FUNCTION (Used for Preview & Anti-Copy Flattening)
+    function drawWatermarkOnCanvasContext(ctx, canvasWidth, canvasHeight, pdfPtWidth, mainText, subtext, layout, cfg) {
+      ctx.save();
+      ctx.fillStyle = cfg.color;
+      ctx.globalAlpha = cfg.opacity;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Scale font size proportionally to canvas vs original PDF point width (default A4 = 595.28 pt)
+      const refWidth = pdfPtWidth || 595;
+      const scaleFactor = canvasWidth / refWidth;
+      const computedFontSize = Math.max(12, cfg.fontSize * scaleFactor);
+      ctx.font = `bold ${computedFontSize}px "Roboto", "Inter", "Segoe UI", sans-serif`;
+
+      // Canvas rotation: In PDF, +angle tilts up-right (counter-clockwise). In Canvas, -angle tilts up-right.
+      const rad = (-cfg.angle * Math.PI) / 180;
+      const cx = canvasWidth / 2;
+      const cy = canvasHeight / 2;
+
+      if (layout === 'center') {
+        ctx.translate(cx, cy);
+        ctx.rotate(rad);
+        ctx.fillText(mainText, 0, 0);
+
+        if (subtext) {
+          ctx.font = `500 ${computedFontSize * 0.45}px "Roboto", "Inter", "Segoe UI", sans-serif`;
+          ctx.fillText(subtext, 0, computedFontSize * 0.75);
+        }
+      } else if (layout === 'grid') {
+        const stepX = canvasWidth / 2.2;
+        const stepY = canvasHeight / 3.2;
+
+        for (let x = -canvasWidth * 0.2; x < canvasWidth * 1.3; x += stepX) {
+          for (let y = -canvasHeight * 0.2; y < canvasHeight * 1.3; y += stepY) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rad);
+            ctx.fillText(mainText, 0, 0);
+            if (subtext) {
+              ctx.font = `500 ${computedFontSize * 0.4}px "Roboto", "Inter", "Segoe UI", sans-serif`;
+              ctx.fillText(subtext, 0, computedFontSize * 0.6);
+            }
+            ctx.restore();
+          }
+        }
+      } else if (layout === 'bottom') {
+        ctx.translate(cx, canvasHeight - 25 * scaleFactor);
+        ctx.fillText(mainText, 0, 0);
+      } else if (layout === 'top') {
+        ctx.translate(cx, 25 * scaleFactor);
+        ctx.fillText(mainText, 0, 0);
+      }
+
+      ctx.restore();
+    }
+
+    // Live Watermark Preview on Canvas
+    function updatePreview() {
+      const wmCanvas = document.getElementById('watermarkPreviewCanvas');
+      if (!wmCanvas || !previewViewport) return;
+
+      const ctx = wmCanvas.getContext('2d');
+      ctx.clearRect(0, 0, wmCanvas.width, wmCanvas.height);
+
+      if (!isCurrentPageActive(currentPreviewPage)) {
+        return; // Watermark not applied on this page
+      }
+
+      let sampleName = 'NGUYỄN VĂN AN';
+      if (currentMode === 'recipient') {
+        const list = getRecipients();
+        if (list.length > 0) sampleName = list[0];
+      } else {
+        sampleName = document.getElementById('batchWatermarkText').value || 'BẢN LƯU HÀNH NỘI BỘ';
+      }
+
+      const mainText = formatWatermarkText(sampleName);
+      let subtext = document.getElementById('watermarkSubtext').value;
+      if (document.getElementById('chkRemoveAccents').checked) {
+        subtext = removeVietnameseTones(subtext);
+      }
+      const layout = document.getElementById('wmLayout').value;
+
+      document.getElementById('lblPreviewName').innerText = mainText;
+
+      drawWatermarkOnCanvasContext(ctx, wmCanvas.width, wmCanvas.height, 595, mainText, subtext, layout, config);
+    }
+
+    // Update Summary & Button State
+    function updateSummary() {
+      const btn = document.getElementById('btnProcessBatch');
+      const btnLabel = document.getElementById('btnProcessLabel');
+      const summary = document.getElementById('summaryText');
+
+      if (!originalPdfBytes || selectedFiles.length === 0) {
+        btn.disabled = true;
+        summary.innerHTML = '<span class="text-amber-600 font-medium"><i class="ph-bold ph-warning"></i> Vui lòng tải file PDF lên để bắt đầu</span>';
+        return;
+      }
+
+      const antiCopySuffix = config.antiCopy ? ' (CHỐNG COPY)' : '';
+
+      if (currentMode === 'recipient') {
+        const recipients = getRecipients();
+        if (recipients.length === 0) {
+          btn.disabled = true;
+          summary.innerHTML = '<span class="text-amber-600 font-medium"><i class="ph-bold ph-warning"></i> Vui lòng nhập danh sách ít nhất 1 người nhận</span>';
+        } else {
+          btn.disabled = false;
+          btnLabel.innerText = `XUẤT ${recipients.length} FILE PDF RIÊNG${antiCopySuffix} (NÉN ZIP)`;
+          summary.innerHTML = `<span class="text-emerald-600 font-medium"><i class="ph-bold ph-check"></i> Sẵn sàng tạo <strong>${recipients.length}</strong> file PDF cá nhân hóa${config.antiCopy ? ' (Đã khóa chọn chữ)' : ''}.</span>`;
+        }
+      } else {
+        btn.disabled = false;
+        btnLabel.innerText = `ĐÓNG DẤU ${selectedFiles.length} FILE${antiCopySuffix} (NÉN ZIP)`;
+        summary.innerHTML = `<span class="text-emerald-600 font-medium"><i class="ph-bold ph-check"></i> Sẵn sàng đóng dấu <strong>${selectedFiles.length}</strong> file PDF hàng loạt${config.antiCopy ? ' (Đã khóa chọn chữ)' : ''}.</span>`;
+      }
+    }
+
+    function hexToRgb01(hex) {
+      const bigint = parseInt(hex.replace('#', ''), 16);
+      return {
+        r: ((bigint >> 16) & 255) / 255,
+        g: ((bigint >> 8) & 255) / 255,
+        b: (bigint & 255) / 255
+      };
+    }
+
+    function sanitizeFilename(name) {
+      return name.replace(/[/\\?%*:|"<>]/g, '_').trim();
+    }
+
+    // Exact mathematical centering calculation for rotated text in PDF
+    function getRotatedStartPoint(cx, cy, textWidth, fontSize, angleDeg) {
+      const rad = (angleDeg * Math.PI) / 180;
+      const vx = (textWidth / 2) * Math.cos(rad) - (0.35 * fontSize) * Math.sin(rad);
+      const vy = (textWidth / 2) * Math.sin(rad) + (0.35 * fontSize) * Math.cos(rad);
+      return { x: cx - vx, y: cy - vy };
+    }
+
+    // CORE: BATCH PROCESSING WITH PDF-LIB & JSZIP
+    async function startBatchProcessing() {
+      if (!originalPdfBytes) return;
+
+      const progressSection = document.getElementById('progressSection');
+      const progressBarFill = document.getElementById('progressBarFill');
+      const progressPercent = document.getElementById('progressPercentageText');
+      const progressStatus = document.getElementById('progressStatusText');
+      const progressDetail = document.getElementById('progressDetailText');
+      const btnProcess = document.getElementById('btnProcessBatch');
+      const successBox = document.getElementById('successBox');
+      const successDetail = document.getElementById('successDetailText');
+
+      btnProcess.disabled = true;
+      successBox.classList.add('hidden');
+      progressSection.classList.remove('hidden');
+
+      const zip = new JSZip();
+      const rgb = hexToRgb01(config.color);
+      const layout = document.getElementById('wmLayout').value;
+      const pageRange = document.getElementById('wmPageRange').value;
+      const subtext = document.getElementById('watermarkSubtext').value;
+
+      try {
+        let tasks = [];
+
+        if (currentMode === 'recipient') {
+          const recipients = getRecipients();
+          const baseName = selectedFiles[0].name.replace(/\.pdf$/i, '');
+          tasks = recipients.map(recipientName => ({
+            name: recipientName,
+            pdfBytes: originalPdfBytes,
+            outputFilename: `${baseName}_${sanitizeFilename(recipientName)}.pdf`
+          }));
+        } else {
+          const fixedText = document.getElementById('batchWatermarkText').value || 'BẢN LƯU HÀNH NỘI BỘ';
+          for (let f of selectedFiles) {
+            const bytes = new Uint8Array(await f.arrayBuffer());
+            const baseName = f.name.replace(/\.pdf$/i, '');
+            tasks.push({
+              name: fixedText,
+              pdfBytes: bytes,
+              outputFilename: `${baseName}_watermarked.pdf`
+            });
+          }
+        }
+
+        const total = tasks.length;
+        let completed = 0;
+
+        for (let i = 0; i < total; i++) {
+          const task = tasks[i];
+          const pct = Math.round(((i) / total) * 100);
+          progressBarFill.style.width = pct + '%';
+          progressPercent.innerText = pct + '%';
+          progressStatus.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Đang xử lý (${i + 1}/${total}): ${config.antiCopy ? 'Khóa chọn text & Đóng dấu' : 'Đóng dấu vector'}...`;
+          progressDetail.innerText = task.outputFilename;
+
+          let modifiedBytes;
+
+          if (config.antiCopy) {
+            // Anti-Copy Flatten Mode: Render to HD raster canvas, baking watermark directly into pixels
+            modifiedBytes = await applyWatermarkFlattenAntiCopy({
+              sourcePdfBytes: task.pdfBytes,
+              recipientName: task.name,
+              subtext: subtext,
+              layout: layout,
+              pageRange: pageRange,
+              taskIndex: i + 1,
+              totalTasks: total,
+              onPageProgress: (pageIdx, totalP) => {
+                progressDetail.innerText = `${task.outputFilename} (Khóa text trang ${pageIdx}/${totalP})`;
+              }
+            });
+          } else {
+            // Standard Vector Mode
+            modifiedBytes = await applyWatermarkVectorPdf({
+              sourcePdfBytes: task.pdfBytes,
+              recipientName: task.name,
+              subtext: subtext,
+              layout: layout,
+              pageRange: pageRange,
+              colorRgb: rgb
+            });
+          }
+
+          zip.file(task.outputFilename, modifiedBytes);
+          completed++;
+          
+          // Yield to browser UI thread
+          await new Promise(r => setTimeout(r, 20));
+        }
+
+        progressStatus.innerHTML = `<i class="ph-bold ph-archive text-blue-600"></i> Đang nén file ZIP...`;
+        progressBarFill.style.width = '95%';
+        progressPercent.innerText = '95%';
+
+        const zipBlob = await zip.generateAsync({
+          type: 'blob',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 6 }
+        });
+
+        lastGeneratedZipBlob = zipBlob;
+
+        // Auto Download
+        const zipFilename = `Watermarked_Documents_${config.antiCopy ? 'AntiCopy_' : ''}${new Date().toISOString().slice(0, 10)}.zip`;
+        saveAs(zipBlob, zipFilename);
+
+        // Update UI
+        progressBarFill.style.width = '100%';
+        progressPercent.innerText = '100%';
+        progressSection.classList.add('hidden');
+        successBox.classList.remove('hidden');
+        btnProcess.disabled = false;
+
+        if (config.antiCopy) {
+          successDetail.innerHTML = '<span class="text-amber-800 font-semibold"><i class="ph-bold ph-lock-key"></i> Đã kích hoạt Chống Copy:</span> Văn bản đã được khóa bôi đen chọn chữ 100%, watermark được hòa trộn chống xóa hoàn toàn.';
+        } else {
+          successDetail.innerText = 'Tất cả file PDF đã được đóng dấu với chất lượng vector nguyên bản 100%.';
+        }
+
+        document.getElementById('btnReDownloadZip').onclick = () => {
+          if (lastGeneratedZipBlob) {
+            saveAs(lastGeneratedZipBlob, zipFilename);
+          }
+        };
+
+      } catch (err) {
+        console.error('Lỗi xử lý file:', err);
+        alert('Có lỗi xảy ra: ' + err.message);
+        btnProcess.disabled = false;
+        progressSection.classList.add('hidden');
+      }
+    }
+
+    // ANTI-COPY FLATTEN TO HD IMAGE (100% UNSELECTABLE & TAMPER-PROOF)
+    async function applyWatermarkFlattenAntiCopy({ sourcePdfBytes, recipientName, subtext, layout, pageRange, onPageProgress }) {
+      const { PDFDocument } = PDFLib;
+
+      const loadingTask = pdfjsLib.getDocument({ data: sourcePdfBytes.slice() });
+      const pdfJsDoc = await loadingTask.promise;
+      const numPages = pdfJsDoc.numPages;
+
+      const outDoc = await PDFDocument.create();
+
+      let mainText = formatWatermarkText(recipientName);
+      let sub = subtext ? subtext : '';
+      if (document.getElementById('chkRemoveAccents').checked) {
+        mainText = removeVietnameseTones(mainText);
+        sub = removeVietnameseTones(sub);
+      }
+
+      for (let p = 1; p <= numPages; p++) {
+        if (onPageProgress) onPageProgress(p, numPages);
+
+        const page = await pdfJsDoc.getPage(p);
+        const unscaledViewport = page.getViewport({ scale: 1 });
+        // Scale 1.75 = ~130-150 DPI (Sharp HD for reading and printing, fast rendering, balanced memory)
+        const renderScale = 1.75;
+        const viewport = page.getViewport({ scale: renderScale });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        const ctx = canvas.getContext('2d');
+
+        // Solid white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Render PDF page content onto canvas
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        // 2. Draw watermark directly onto canvas if page is in range
+        const shouldWatermark = (pageRange === 'all') || (pageRange === 'first' && p === 1) || (pageRange === 'from2' && p >= 2);
+        if (shouldWatermark) {
+          drawWatermarkOnCanvasContext(ctx, canvas.width, canvas.height, unscaledViewport.width, mainText, sub, layout, config);
+        }
+
+        // 3. Export to JPEG blob (88% quality is indistinguishable from lossless for text, highly compressed)
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+        const imgBuffer = await blob.arrayBuffer();
+
+        // 4. Embed into PDF-Lib document
+        const jpgImage = await outDoc.embedJpg(imgBuffer);
+        const newPage = outDoc.addPage([unscaledViewport.width, unscaledViewport.height]);
+        newPage.drawImage(jpgImage, {
+          x: 0,
+          y: 0,
+          width: unscaledViewport.width,
+          height: unscaledViewport.height
+        });
+
+        // Release canvas memory immediately
+        canvas.width = 0;
+        canvas.height = 0;
+
+        // Yield to browser UI
+        await new Promise(r => setTimeout(r, 10));
+      }
+
+      return await outDoc.save();
+    }
+
+    // STANDARD VECTOR WATERMARK (Preserves original text layer & vector lightness)
+    async function applyWatermarkVectorPdf({ sourcePdfBytes, recipientName, subtext, layout, pageRange, colorRgb }) {
+      const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+
+      const pdfDoc = await PDFDocument.load(sourcePdfBytes, { ignoreEncryption: true });
+
+      let fontToUse;
+      let isFallback = false;
+
+      if (customFontBytes && !document.getElementById('chkRemoveAccents').checked) {
+        try {
+          pdfDoc.registerFontkit(fontkit);
+          fontToUse = await pdfDoc.embedFont(customFontBytes);
+        } catch (fontErr) {
+          console.warn('Cannot embed custom font, falling back to Helvetica:', fontErr);
+          isFallback = true;
+          fontToUse = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        }
+      } else {
+        isFallback = true;
+        fontToUse = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      }
+
+      let mainText = formatWatermarkText(recipientName);
+      let sub = subtext ? subtext : '';
+
+      if (isFallback || document.getElementById('chkRemoveAccents').checked) {
+        mainText = removeVietnameseTones(mainText);
+        sub = removeVietnameseTones(sub);
+      }
+
+      const pages = pdfDoc.getPages();
+      const pagesToProcess = [];
+
+      if (pageRange === 'all') {
+        pagesToProcess.push(...pages);
+      } else if (pageRange === 'first') {
+        if (pages.length > 0) pagesToProcess.push(pages[0]);
+      } else if (pageRange === 'from2') {
+        for (let i = 1; i < pages.length; i++) {
+          pagesToProcess.push(pages[i]);
+        }
+      }
+
+      const fontSize = config.fontSize;
+      const opacity = config.opacity;
+      const angleDeg = config.angle;
+      const rad = (angleDeg * Math.PI) / 180;
+      const color = rgb(colorRgb.r, colorRgb.g, colorRgb.b);
+
+      for (let page of pagesToProcess) {
+        const { width, height } = page.getSize();
+        const textWidth = fontToUse.widthOfTextAtSize(mainText, fontSize);
+
+        if (layout === 'center') {
+          const cx = width / 2;
+          const cy = height / 2;
+          const startPt = getRotatedStartPoint(cx, cy, textWidth, fontSize, angleDeg);
+
+          page.drawText(mainText, {
+            x: startPt.x,
+            y: startPt.y,
+            size: fontSize,
+            font: fontToUse,
+            color: color,
+            opacity: opacity,
+            rotate: degrees(angleDeg)
+          });
+
+          if (sub) {
+            const subSize = fontSize * 0.45;
+            const subWidth = fontToUse.widthOfTextAtSize(sub, subSize);
+            const dist = fontSize * 0.8;
+            const subCx = cx + dist * Math.sin(rad);
+            const subCy = cy - dist * Math.cos(rad);
+            const subStartPt = getRotatedStartPoint(subCx, subCy, subWidth, subSize, angleDeg);
+
+            page.drawText(sub, {
+              x: subStartPt.x,
+              y: subStartPt.y,
+              size: subSize,
+              font: fontToUse,
+              color: color,
+              opacity: opacity * 0.85,
+              rotate: degrees(angleDeg)
+            });
+          }
+
+        } else if (layout === 'grid') {
+          const stepX = width / 2.3;
+          const stepY = height / 3.3;
+
+          for (let x = -width * 0.2; x < width * 1.3; x += stepX) {
+            for (let y = -height * 0.2; y < height * 1.3; y += stepY) {
+              const startPt = getRotatedStartPoint(x, y, textWidth, fontSize, angleDeg);
+              page.drawText(mainText, {
+                x: startPt.x,
+                y: startPt.y,
+                size: fontSize,
+                font: fontToUse,
+                color: color,
+                opacity: opacity,
+                rotate: degrees(angleDeg)
+              });
+
+              if (sub) {
+                const subSize = fontSize * 0.4;
+                const subWidth = fontToUse.widthOfTextAtSize(sub, subSize);
+                const dist = fontSize * 0.65;
+                const subCx = x + dist * Math.sin(rad);
+                const subCy = y - dist * Math.cos(rad);
+                const subStart = getRotatedStartPoint(subCx, subCy, subWidth, subSize, angleDeg);
+
+                page.drawText(sub, {
+                  x: subStart.x,
+                  y: subStart.y,
+                  size: subSize,
+                  font: fontToUse,
+                  color: color,
+                  opacity: opacity * 0.8,
+                  rotate: degrees(angleDeg)
+                });
+              }
+            }
+          }
+
+        } else if (layout === 'bottom') {
+          page.drawText(mainText, {
+            x: width / 2 - (textWidth / 2),
+            y: 30,
+            size: fontSize * 0.6,
+            font: fontToUse,
+            color: color,
+            opacity: opacity
+          });
+
+        } else if (layout === 'top') {
+          page.drawText(mainText, {
+            x: width / 2 - (textWidth / 2),
+            y: height - 35,
+            size: fontSize * 0.6,
+            font: fontToUse,
+            color: color,
+            opacity: opacity
+          });
+        }
+      }
+
+      return await pdfDoc.save();
+    }
+
+    // Security Modal
+    function openSecurityModal() {
+      document.getElementById('securityModal').classList.remove('hidden');
+    }
+    function closeSecurityModal() {
+      document.getElementById('securityModal').classList.add('hidden');
+    }
+
+    // Reset All Session Data in RAM
+    function resetAllData(askConfirm) {
+      if (askConfirm) {
+        const ok = confirm('Bạn có chắc chắn muốn xóa toàn bộ dữ liệu trong phiên làm việc hiện tại không?\n\nToàn bộ RAM của tab này sẽ được làm sạch.');
+        if (!ok) return;
+      }
+
+      clearSelectedFiles();
+      clearNamesInput();
+      lastGeneratedZipBlob = null;
+      document.getElementById('successBox').classList.add('hidden');
+      document.getElementById('progressSection').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
