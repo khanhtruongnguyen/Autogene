@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Watermark Pro - Bảo Mật, Chống Copy & Đóng Dấu Hàng Loạt</title>
+  <title>PDF Watermark Pro - Bảo Mật, Mã Hóa Nhị Phân & Đóng Dấu Hàng Loạt</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Phosphor Icons -->
@@ -18,9 +18,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap');
     body {
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
     }
     .custom-scroll::-webkit-scrollbar {
       width: 6px;
@@ -36,6 +39,12 @@
     }
     .custom-scroll::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
+    }
+    .canvas-cursor-eraser {
+      cursor: crosshair;
+    }
+    .canvas-cursor-circle {
+      cursor: cell;
     }
   </style>
 </head>
@@ -55,7 +64,7 @@
               <i class="ph-bold ph-shield-check text-emerald-600"></i> 100% Client-Side
             </span>
           </h1>
-          <p class="text-xs text-slate-500">Chèn watermark, khóa chọn text & phân phối tài liệu hàng loạt</p>
+          <p class="text-xs text-slate-500">Chèn watermark, mã hóa nhị phân truy vết & phân phối tài liệu hàng loạt</p>
         </div>
       </div>
 
@@ -92,8 +101,8 @@
         Phát tài liệu theo danh sách người nhận (1 file PDF &rarr; N người)
       </button>
       <button id="tabModeBatch" onclick="switchMode('batch')" class="pb-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all">
-        <i class="ph-bold ph-files text-lg"></i>
-        Đóng dấu hàng loạt nhiều file (N file PDF &rarr; Cùng 1 watermark)
+        <i class="ph-bold ph-stamp text-lg"></i>
+        Đóng dấu hàng loạt nhiều file (Logo ALC &amp; Header CLB)
       </button>
     </div>
 
@@ -111,8 +120,8 @@
               <span id="uploadHeading">Chọn file tài liệu PDF gốc</span>
             </h2>
             <div class="flex items-center gap-2">
-              <button onclick="generateSamplePdf()" class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                <i class="ph-bold ph-magic-wand"></i> Tạo PDF mẫu thử
+              <button onclick="generateSamplePdf(false)" class="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                <i class="ph-bold ph-magic-wand"></i> Tạo PDF mẫu thử (5 trang)
               </button>
               <span class="text-slate-300">|</span>
               <span id="fileCountBadge" class="text-xs font-medium text-slate-500">Chưa có file</span>
@@ -126,7 +135,7 @@
               <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
                 <i class="ph-duotone ph-file-pdf text-3xl"></i>
               </div>
-              <p class="text-sm font-semibold text-slate-700">Kéo & thả file PDF vào đây, hoặc <span class="text-blue-600 underline">chọn từ máy tính</span></p>
+              <p class="text-sm font-semibold text-slate-700">Kéo &amp; thả file PDF vào đây, hoặc <span class="text-blue-600 underline">chọn từ máy tính</span></p>
               <p id="uploadSubtext" class="text-xs text-slate-400 mt-1">Hỗ trợ mọi kích thước file PDF (A4, Letter, văn bản nhiều trang)</p>
             </div>
           </div>
@@ -146,14 +155,14 @@
           </div>
         </div>
 
-        <!-- STEP 2: RECIPIENT NAMES / BATCH WATERMARK TEXT -->
+        <!-- STEP 2: RECIPIENT NAMES / BATCH ALC LOGO & RED HEADER -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
               <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">2</span>
               <span id="contentStepHeading">Danh sách người nhận (Mỗi dòng 1 người)</span>
             </h2>
-            <div class="flex items-center gap-2">
+            <div id="recipientSampleBtns" class="flex items-center gap-2">
               <button id="btnSampleNames" onclick="loadSampleNames()" class="text-xs text-blue-600 hover:text-blue-700 font-medium">
                 Dán 5 tên mẫu
               </button>
@@ -167,159 +176,362 @@
           <!-- RECIPIENT MODE TEXTAREA -->
           <div id="recipientInputSection">
             <textarea id="recipientListInput" rows="5" class="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 custom-scroll leading-relaxed" placeholder="Nguyễn Văn An&#10;Trần Thị Bích Ngọc&#10;Lê Hoàng Nam&#10;Phạm Minh Tuấn&#10;Võ Thị Mai Phương"></textarea>
-            <div class="flex items-center justify-between mt-2 text-xs text-slate-500">
+            <div class="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs text-slate-500">
               <span id="recipientCountText">Đã phát hiện: <strong>0</strong> người nhận</span>
-              <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 select-none">
-                <input type="checkbox" id="chkAutoUppercase" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="updatePreview()">
-                <span>Tự động VIẾT HOA tên</span>
-              </label>
+              <div class="flex flex-wrap items-center gap-3">
+                <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 select-none">
+                  <input type="checkbox" id="chkAutoUppercase" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="updatePreview()">
+                  <span>Tự động VIẾT HOA tên</span>
+                </label>
+                <label class="flex items-center gap-1.5 cursor-pointer text-rose-700 font-semibold select-none">
+                  <input type="checkbox" id="chkIncludeAlcInRecipientMode" class="rounded text-rose-600 focus:ring-rose-500" onchange="updatePreview()">
+                  <span>Kèm Logo ALC &amp; Header đỏ CLB</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- TEMPLATE & SUBTEXT (RECIPIENT MODE) -->
+            <div id="recipientTemplateSection" class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">Mẫu hiển thị (Template)</label>
+                <input type="text" id="watermarkTemplate" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500" value="{name}" placeholder="{name}" oninput="updatePreview()" />
+                <p class="text-[10px] text-slate-400 mt-0.5">Dùng <code>{name}</code> để đại diện cho tên người nhận</p>
+              </div>
+              <div>
+                <label class="block font-medium text-slate-700 mb-1">Dòng phụ bên dưới (Tùy chọn)</label>
+                <input type="text" id="watermarkSubtext" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500" placeholder="VD: TUYỆT MẬT - KHÔNG SAO CHÉP" oninput="updatePreview()" />
+                <p class="text-[10px] text-slate-400 mt-0.5">Hiển thị chữ nhỏ ngay dưới tên chính</p>
+              </div>
             </div>
           </div>
 
-          <!-- BATCH FIXED TEXT -->
-          <div id="batchInputSection" class="hidden space-y-2">
-            <input type="text" id="batchWatermarkText" class="w-full text-sm p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="VD: BẢN LƯU HÀNH NỘI BỘ - BẢO MẬT" value="BẢN LƯU HÀNH NỘI BỘ" oninput="updatePreview()" />
-            <p class="text-[11px] text-slate-400">Nội dung này sẽ được đóng dấu lên tất cả các file PDF bạn tải lên.</p>
-          </div>
+          <!-- BATCH STAMP MODE: ALC LOGO WATERMARK + RED RIGHT HEADER -->
+          <div id="batchInputSection" class="hidden space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              <!-- Logo Preview Box -->
+              <div class="sm:col-span-4 flex flex-col items-center justify-center bg-white border border-slate-200 rounded-xl p-3 shadow-inner">
+                <img id="batchLogoPreviewImg" alt="Logo ALC HMU_C" class="h-24 object-contain select-none" />
+                <span class="text-[10px] font-bold text-slate-500 mt-1.5">Logo ALC (HMU_C)</span>
+              </div>
 
-          <!-- TEMPLATE & SUBTEXT -->
-          <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div>
-              <label class="block font-medium text-slate-700 mb-1">Mẫu hiển thị (Template)</label>
-              <input type="text" id="watermarkTemplate" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500" value="{name}" placeholder="{name}" oninput="updatePreview()" />
-              <p class="text-[10px] text-slate-400 mt-0.5">Dùng <code>{name}</code> để đại diện cho tên người nhận</p>
+              <!-- Logo Controls -->
+              <div class="sm:col-span-8 space-y-3 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                    <i class="ph-fill ph-seal-check text-blue-600 text-base"></i>
+                    Con dấu Logo chính giữa trang
+                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <input type="file" id="customLogoFileInput" class="hidden" accept="image/*" onchange="handleCustomLogoUpload(event)" />
+                    <button type="button" onclick="document.getElementById('customLogoFileInput').click()" class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[11px] font-medium transition-colors">
+                      Đổi ảnh khác
+                    </button>
+                    <button type="button" id="btnRestoreDefaultLogo" onclick="restoreDefaultAlcLogo()" class="hidden px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[11px] font-semibold transition-colors">
+                      Mặc định ALC
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                    <label>Kích thước Logo trên trang</label>
+                    <span id="lblLogoScale" class="text-blue-600 font-mono">52% trang</span>
+                  </div>
+                  <input type="range" id="wmLogoScale" min="20" max="85" value="52" class="w-full accent-blue-600 cursor-pointer" oninput="updateLogoScale(this.value)">
+                </div>
+
+                <p class="text-[11px] text-slate-500">
+                  Logo đã được xử lý tách nền trong suốt để đóng dấu chìm lên tài liệu mà không che khuất chữ gốc.
+                </p>
+              </div>
             </div>
-            <div>
-              <label class="block font-medium text-slate-700 mb-1">Dòng phụ bên dưới (Tùy chọn)</label>
-              <input type="text" id="watermarkSubtext" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500" placeholder="VD: TUYỆT MẬT - KHÔNG SAO CHÉP" oninput="updatePreview()" />
-              <p class="text-[10px] text-slate-400 mt-0.5">Hiển thị chữ nhỏ ngay dưới tên chính</p>
+
+            <!-- RED RIGHT HEADER CONFIG -->
+            <div class="p-3.5 rounded-xl bg-red-50/60 border border-red-200 space-y-3 text-xs">
+              <div class="flex items-center justify-between">
+                <label class="font-bold text-red-900 flex items-center gap-1.5">
+                  <i class="ph-bold ph-text-align-right text-red-600 text-base"></i>
+                  <span>Header phía bên phải (Màu chữ đỏ)</span>
+                </label>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">Góc trên bên phải</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                <div class="sm:col-span-8">
+                  <input type="text" id="batchHeaderRightText" class="w-full text-sm font-bold text-red-600 p-2.5 rounded-xl border border-red-300 bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500" value="CLB Học Tập Tích Cực ALC" placeholder="CLB Học Tập Tích Cực ALC" oninput="updatePreview()" />
+                </div>
+                <div class="sm:col-span-4">
+                  <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                    <label>Cỡ chữ Header</label>
+                    <span id="lblHeaderFontSize" class="text-red-600 font-mono">13px</span>
+                  </div>
+                  <input type="range" id="wmHeaderFontSize" min="9" max="24" value="13" class="w-full accent-red-600 cursor-pointer" oninput="updateHeaderFontSize(this.value)">
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- STEP 3: WATERMARK STYLING CONTROLS -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
-          <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">3</span>
-            <span>Tùy chỉnh kiểu dáng & vị trí Watermark</span>
-          </h2>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            
-            <!-- LAYOUT -->
-            <div>
-              <label class="block font-semibold text-slate-700 mb-1">Kiểu bố trí (Layout)</label>
-              <select id="wmLayout" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500 bg-white" onchange="updatePreview()">
-                <option value="center" selected>Chính giữa trang (1 chữ lớn - Khuyên dùng)</option>
-                <option value="grid">Lưới chéo phủ toàn trang (Chống tẩy xóa)</option>
-                <option value="bottom">Dưới chân trang (Footer)</option>
-                <option value="top">Đầu trang (Header)</option>
-              </select>
-            </div>
-
-            <!-- ROTATION ANGLE -->
-            <div>
-              <label class="block font-semibold text-slate-700 mb-1">Góc nghiêng xoay chữ</label>
-              <div class="grid grid-cols-4 gap-1.5">
-                <button type="button" onclick="setAngle(0)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="0">0° (Ngang)</button>
-                <button type="button" onclick="setAngle(30)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="30">30°</button>
-                <button type="button" onclick="setAngle(45)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-blue-600 bg-blue-50 text-blue-700" data-angle="45">45° (Chéo)</button>
-                <button type="button" onclick="setAngle(-45)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="-45">-45°</button>
-              </div>
-            </div>
-
-            <!-- FONT SIZE -->
-            <div>
-              <div class="flex justify-between font-semibold text-slate-700 mb-1">
-                <label>Cỡ chữ (Font Size)</label>
-                <span id="lblFontSize" class="text-blue-600 font-mono">42px</span>
-              </div>
-              <input type="range" id="wmFontSize" min="16" max="90" value="42" class="w-full accent-blue-600 cursor-pointer" oninput="updateFontSize(this.value)">
-            </div>
-
-            <!-- OPACITY -->
-            <div>
-              <div class="flex justify-between font-semibold text-slate-700 mb-1">
-                <label>Độ trong suốt (Opacity)</label>
-                <span id="lblOpacity" class="text-blue-600 font-mono">20%</span>
-              </div>
-              <input type="range" id="wmOpacity" min="5" max="80" value="20" class="w-full accent-blue-600 cursor-pointer" oninput="updateOpacity(this.value)">
-            </div>
-
-            <!-- COLOR PRESETS -->
-            <div>
-              <label class="block font-semibold text-slate-700 mb-1">Màu sắc Watermark</label>
-              <div class="flex items-center gap-2">
-                <button type="button" onclick="setColor('#64748b')" class="color-btn w-7 h-7 rounded-full bg-slate-500 ring-2 ring-offset-2 ring-blue-500 transition-all" data-color="#64748b" title="Xám chuẩn"></button>
-                <button type="button" onclick="setColor('#ef4444')" class="color-btn w-7 h-7 rounded-full bg-red-500 hover:opacity-80 transition-all" data-color="#ef4444" title="Đỏ cảnh báo"></button>
-                <button type="button" onclick="setColor('#2563eb')" class="color-btn w-7 h-7 rounded-full bg-blue-600 hover:opacity-80 transition-all" data-color="#2563eb" title="Xanh doanh nghiệp"></button>
-                <button type="button" onclick="setColor('#0f172a')" class="color-btn w-7 h-7 rounded-full bg-slate-900 hover:opacity-80 transition-all" data-color="#0f172a" title="Đen đậm"></button>
-                <input type="color" id="customColorPicker" value="#64748b" onchange="setColor(this.value)" class="w-7 h-7 rounded cursor-pointer border border-slate-300" title="Tự chọn màu khác">
-              </div>
-            </div>
-
-            <!-- PAGE RANGE -->
-            <div>
-              <label class="block font-semibold text-slate-700 mb-1">Trang áp dụng</label>
-              <select id="wmPageRange" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500 bg-white" onchange="updatePreview()">
-                <option value="all">Tất cả các trang</option>
-                <option value="first">Chỉ trang đầu tiên</option>
-                <option value="from2">Từ trang 2 trở đi (Bỏ trang bìa)</option>
-              </select>
-            </div>
-
-          </div>
-
-          <!-- VIETNAMESE ACCENTS & FONT STATUS -->
-          <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div class="flex items-center gap-2">
-              <span id="fontStatusBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <i class="ph-bold ph-check-circle"></i> Font tiếng Việt Roboto sẵn sàng
-              </span>
-            </div>
-            <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 select-none">
-              <input type="checkbox" id="chkRemoveAccents" class="rounded text-blue-600 focus:ring-blue-500" onchange="updatePreview()">
-              <span>Chuyển thành chữ không dấu (VD: NGUYEN VAN A)</span>
+        <div id="step3WatermarkCard" class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">3</span>
+              <span>Tùy chỉnh kiểu dáng & vị trí Watermark</span>
+            </h2>
+            <label id="lblEnableTextWatermark" class="hidden items-center gap-1.5 cursor-pointer text-xs font-semibold text-blue-700 select-none">
+              <input type="checkbox" id="chkEnableTextWatermark" class="rounded text-blue-600 focus:ring-blue-500" checked onchange="toggleTextWatermarkWithBinary(this.checked)">
+              <span>Đóng dấu kèm chữ Watermark mờ</span>
             </label>
           </div>
 
+          <div id="watermarkStylingBody" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              
+              <!-- LAYOUT -->
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Kiểu bố trí (Layout)</label>
+                <select id="wmLayout" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500 bg-white" onchange="updatePreview()">
+                  <option value="center" selected>Chính giữa trang (1 chữ lớn - Khuyên dùng)</option>
+                  <option value="grid">Lưới chéo phủ toàn trang (Chống tẩy xóa)</option>
+                  <option value="bottom">Dưới chân trang (Footer)</option>
+                  <option value="top">Đầu trang (Header)</option>
+                </select>
+              </div>
+
+              <!-- ROTATION ANGLE -->
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Góc nghiêng xoay chữ</label>
+                <div class="grid grid-cols-4 gap-1.5">
+                  <button type="button" onclick="setAngle(0)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="0">0° (Ngang)</button>
+                  <button type="button" onclick="setAngle(30)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="30">30°</button>
+                  <button type="button" onclick="setAngle(45)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-blue-600 bg-blue-50 text-blue-700" data-angle="45">45° (Chéo)</button>
+                  <button type="button" onclick="setAngle(-45)" class="angle-btn py-1.5 px-2 rounded border text-center font-medium transition-all border-slate-200 hover:bg-slate-50 text-slate-600" data-angle="-45">-45°</button>
+                </div>
+              </div>
+
+              <!-- FONT SIZE -->
+              <div>
+                <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                  <label>Cỡ chữ (Font Size)</label>
+                  <span id="lblFontSize" class="text-blue-600 font-mono">42px</span>
+                </div>
+                <input type="range" id="wmFontSize" min="16" max="90" value="42" class="w-full accent-blue-600 cursor-pointer" oninput="updateFontSize(this.value)">
+              </div>
+
+              <!-- OPACITY -->
+              <div>
+                <div class="flex justify-between font-semibold text-slate-700 mb-1">
+                  <label>Độ trong suốt (Opacity)</label>
+                  <span id="lblOpacity" class="text-blue-600 font-mono">20%</span>
+                </div>
+                <input type="range" id="wmOpacity" min="5" max="80" value="20" class="w-full accent-blue-600 cursor-pointer" oninput="updateOpacity(this.value)">
+              </div>
+
+              <!-- COLOR PRESETS -->
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Màu sắc Watermark</label>
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="setColor('#64748b')" class="color-btn w-7 h-7 rounded-full bg-slate-500 ring-2 ring-offset-2 ring-blue-500 transition-all" data-color="#64748b" title="Xám chuẩn"></button>
+                  <button type="button" onclick="setColor('#ef4444')" class="color-btn w-7 h-7 rounded-full bg-red-500 hover:opacity-80 transition-all" data-color="#ef4444" title="Đỏ cảnh báo"></button>
+                  <button type="button" onclick="setColor('#2563eb')" class="color-btn w-7 h-7 rounded-full bg-blue-600 hover:opacity-80 transition-all" data-color="#2563eb" title="Xanh doanh nghiệp"></button>
+                  <button type="button" onclick="setColor('#0f172a')" class="color-btn w-7 h-7 rounded-full bg-slate-900 hover:opacity-80 transition-all" data-color="#0f172a" title="Đen đậm"></button>
+                  <input type="color" id="customColorPicker" value="#64748b" onchange="setColor(this.value)" class="w-7 h-7 rounded cursor-pointer border border-slate-300" title="Tự chọn màu khác">
+                </div>
+              </div>
+
+              <!-- PAGE RANGE -->
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Trang áp dụng</label>
+                <select id="wmPageRange" class="w-full p-2 rounded-lg border border-slate-300 focus:ring-1 focus:ring-blue-500 bg-white" onchange="updatePreview()">
+                  <option value="all">Tất cả các trang</option>
+                  <option value="first">Chỉ trang đầu tiên</option>
+                  <option value="from2">Từ trang 2 trở đi (Bỏ trang bìa)</option>
+                </select>
+              </div>
+
+            </div>
+
+            <!-- VIETNAMESE ACCENTS & FONT STATUS -->
+            <div class="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div class="flex items-center gap-2">
+                <span id="fontStatusBadge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <i class="ph-bold ph-check-circle"></i> Font tiếng Việt Roboto sẵn sàng
+                </span>
+              </div>
+              <label class="flex items-center gap-1.5 cursor-pointer text-slate-600 select-none">
+                <input type="checkbox" id="chkRemoveAccents" class="rounded text-blue-600 focus:ring-blue-500" onchange="updatePreview()">
+                <span>Chuyển thành chữ không dấu (VD: NGUYEN VAN A)</span>
+              </label>
+            </div>
+          </div>
         </div>
 
-        <!-- STEP 3.5: ANTI-COPY / FLATTEN PROTECTION -->
-        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-sm space-y-3">
+        <!-- ===================================================================== -->
+        <!-- OPTIONAL FEATURE TOGGLE: BINARY STEGANOGRAPHY (DEFAULT COLLAPSED)     -->
+        <!-- ===================================================================== -->
+        <div id="binaryFeatureWrapper" class="bg-gradient-to-br from-rose-50/70 via-white to-indigo-50/50 border border-rose-200 rounded-2xl p-5 shadow-sm space-y-4 transition-all">
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-start gap-3">
-              <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center flex-shrink-0 text-xl shadow-md shadow-amber-500/20">
-                <i class="ph-bold ph-lock-key"></i>
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 to-indigo-600 text-white flex items-center justify-center flex-shrink-0 text-xl shadow-md shadow-rose-500/20">
+                <i class="ph-bold ph-binary"></i>
               </div>
               <div>
-                <label for="chkAntiCopy" class="font-bold text-sm text-slate-900 cursor-pointer flex items-center gap-2">
-                  Khóa chọn chữ & Chống sao chép văn bản tuyệt đối (Anti-Copy)
-                  <span class="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full border border-amber-300">Khuyên dùng</span>
+                <label for="chkEnableBinaryFeature" class="font-bold text-sm text-slate-900 cursor-pointer flex flex-wrap items-center gap-2">
+                  <span>Chức năng Mã hóa nhị phân (Xóa ký tự/dấu câu & Khoanh đỏ truy vết)</span>
+                  <span class="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200">Tùy chọn nâng cao</span>
                 </label>
                 <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
-                  Ngăn chặn 100% hành vi bôi đen chọn chữ, copy nội dung ra ngoài hoặc dùng phần mềm chỉnh sửa PDF để xóa watermark.
+                  Bật lên để dùng công cụ <strong>Bút trắng xóa ký tự</strong> (tối đa 1 dấu/trang chống đảo trang) và <strong>Đặt ô tròn đỏ</strong> tạo 2ⁿ phiên bản PDF kèm 01 file PDF lưu hồ sơ truy vết.
                 </p>
               </div>
             </div>
-            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-1">
-              <input type="checkbox" id="chkAntiCopy" class="sr-only peer" onchange="toggleAntiCopy(this.checked)">
-              <div class="w-12 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
-            </label>
+            <div class="flex items-center gap-2.5 flex-shrink-0 mt-0.5">
+              <button type="button" onclick="openBinaryGuideModal()" class="text-xs font-semibold text-rose-700 bg-white hover:bg-rose-50 border border-rose-200 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-colors" title="Xem hướng dẫn sử dụng chi tiết chức năng Mã hóa nhị phân">
+                <i class="ph-bold ph-book-open-text text-sm text-rose-600"></i>
+                <span>Hướng dẫn sử dụng</span>
+              </button>
+              <label class="relative inline-flex items-center cursor-pointer flex-shrink-0" title="Bật / Tắt chức năng Mã hóa nhị phân">
+                <input type="checkbox" id="chkEnableBinaryFeature" class="sr-only peer" onchange="toggleBinaryFeature(this.checked)">
+                <div class="w-12 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+              </label>
+            </div>
           </div>
 
-          <div id="antiCopyDetails" class="hidden text-xs bg-white/90 p-3.5 rounded-xl border border-amber-200/80 space-y-2">
-            <div class="flex items-center gap-2 text-slate-800 font-semibold">
-              <i class="ph-fill ph-shield-check text-amber-600 text-base"></i>
-              <span>Cơ chế bảo mật Flatten HD:</span>
+          <!-- EXPANDABLE PANEL WHEN BINARY FEATURE IS TURNED ON -->
+          <div id="binaryFeatureBody" class="hidden pt-4 border-t border-rose-200/80 space-y-5">
+
+            <!-- DEMO QUICK BUTTON & FULLSCREEN STUDIO LAUNCHER -->
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-3 rounded-xl border border-rose-100">
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="toggleStudioFullscreen(true)" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg font-bold flex items-center gap-1.5 shadow-sm transition-colors">
+                  <i class="ph-bold ph-corners-out text-sm"></i> Mở Bảng Vẽ Phóng Đại Toàn Màn Hình (Tô xóa cực dễ)
+                </button>
+                <button type="button" onclick="loadFullBinaryDemo()" class="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-3 py-2 rounded-lg font-semibold flex items-center gap-1 transition-colors">
+                  <i class="ph-bold ph-magic-wand"></i> Nạp mẫu 5 trang + Ví dụ A, B, C
+                </button>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="openBinaryGuideModal()" class="text-xs text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition-colors">
+                  <i class="ph-bold ph-question"></i> Xem hướng dẫn chi tiết
+                </button>
+                <button type="button" onclick="clearAllBinaryMarks()" class="text-xs text-slate-500 hover:text-rose-600 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-rose-200 transition-colors">
+                  Xóa tất cả vị trí
+                </button>
+              </div>
             </div>
-            <ul class="list-disc list-inside space-y-1 text-slate-600 text-[11px] leading-relaxed">
-              <li><strong>Không thể bôi đen (No text selection):</strong> Các trang PDF được nén phẳng thành ảnh độ nét cao (HD 150 DPI). File hoàn toàn không còn lớp text để copy.</li>
-              <li><strong>Watermark không thể bị xóa:</strong> Tên người nhận được hòa trộn trực tiếp vào từng pixel hình ảnh của trang, không một phần mềm chỉnh sửa PDF nào có thể tách rời.</li>
-              <li><strong>Chất lượng in & đọc tuyệt vời:</strong> Người nhận vẫn đọc rõ ràng từng nét chữ trên máy tính, điện thoại hoặc in ra giấy.</li>
-            </ul>
+
+            <!-- FORMULA & CAPACITY BANNER -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div class="bg-white p-3 rounded-xl border border-rose-100 flex items-center gap-2.5 shadow-sm">
+                <div class="w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold text-sm font-mono-code" id="statNumPositions">0</div>
+                <div>
+                  <p class="text-[11px] text-slate-500 font-medium">Số vị trí đã chọn</p>
+                  <p class="font-bold text-slate-800" id="statPagesUsed">0 trang khác nhau</p>
+                </div>
+              </div>
+              <div class="bg-white p-3 rounded-xl border border-indigo-100 flex items-center gap-2.5 shadow-sm">
+                <div class="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs font-mono-code" id="statFormula">2⁰</div>
+                <div>
+                  <p class="text-[11px] text-slate-500 font-medium">Số phiên bản tối đa</p>
+                  <p class="font-bold text-indigo-700" id="statMaxCombinations">1 phiên bản</p>
+                </div>
+              </div>
+              <div class="bg-white p-3 rounded-xl border border-emerald-100 flex flex-col justify-center shadow-sm">
+                <div class="flex items-center gap-1.5 font-semibold text-slate-800">
+                  <span class="px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded font-mono-code text-[10px]">0</span>
+                  <span class="text-[11px]">= Giữ nguyên ký tự</span>
+                </div>
+                <div class="flex items-center gap-1.5 font-semibold text-rose-700 mt-1">
+                  <span class="px-1.5 py-0.5 bg-rose-600 text-white rounded font-mono-code text-[10px]">1</span>
+                  <span class="text-[11px]">= Xóa ký tự (Bút trắng)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- NOTICE ABOUT 1 MARK PER PAGE -->
+            <div class="flex items-start gap-2 text-[11px] text-amber-800 bg-amber-50/90 border border-amber-200 px-3 py-2 rounded-xl">
+              <i class="ph-fill ph-info text-amber-600 text-base flex-shrink-0 mt-0.5"></i>
+              <div>
+                <strong>Quy tắc chống đảo trang (Chỉ xóa 1 dấu / trang):</strong> Mỗi trang chỉ được phép chọn <strong>duy nhất 1 vị trí</strong>. Bấm nút <strong>"Mở Bảng Vẽ Phóng Đại Toàn Màn Hình"</strong> để phóng to trang PDF giúp chấm xóa từng dấu câu nhỏ nhất một cách chính xác.
+              </div>
+            </div>
+
+            <!-- LIST OF SELECTED POSITIONS -->
+            <div>
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
+                <span>1. Danh sách các vị trí đã đánh dấu (Sắp xếp theo thứ tự trang):</span>
+              </div>
+
+              <div id="binaryPositionsEmpty" class="text-center py-4 px-4 bg-white rounded-xl border border-dashed border-slate-300 text-xs text-slate-500">
+                Chưa có vị trí nào được chọn. Hãy bấm <strong class="text-indigo-600 cursor-pointer underline" onclick="toggleStudioFullscreen(true)">"Mở Bảng Vẽ Phóng Đại"</strong> để chấm xóa 1 dấu câu trên trang PDF, hoặc bấm <strong class="text-rose-600 cursor-pointer underline" onclick="loadFullBinaryDemo()">"Nạp mẫu 5 trang + Ví dụ A, B, C"</strong>.
+              </div>
+
+              <div id="binaryPositionsTableWrapper" class="hidden overflow-x-auto border border-slate-200 rounded-xl bg-white">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 text-[11px]">
+                      <th class="py-2 px-3 font-bold">Vị trí (Bit)</th>
+                      <th class="py-2 px-2.5 font-bold">Trang</th>
+                      <th class="py-2 px-2.5 font-bold">Trạng thái Bút trắng & Ô đỏ</th>
+                      <th class="py-2 px-2.5 font-bold">Ghi chú vị trí</th>
+                      <th class="py-2 px-2.5 font-bold text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="binaryPositionsTbody" class="divide-y divide-slate-100"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- MEMBER BINARY ASSIGNMENT CONTROLS & TABLE -->
+            <div class="space-y-3 pt-2 border-t border-rose-100">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs font-bold text-slate-800">2. Bảng phân phối Mã Nhị Phân cho danh sách người nhận (Bước 2):</span>
+                <div class="flex items-center gap-2 text-xs">
+                  <select id="binaryAssignStrategy" onchange="regenerateMemberBinaryCodes(true)" class="p-1.5 rounded-lg border border-slate-300 bg-white text-xs font-medium focus:ring-1 focus:ring-rose-500">
+                    <option value="sequential">Cấp mã tuần tự (00001, 00010...)</option>
+                    <option value="random">Cấp mã ngẫu nhiên không trùng</option>
+                    <option value="custom">Tùy chỉnh / Nhập tay</option>
+                  </select>
+                  <button type="button" onclick="loadBinaryExampleMembers()" class="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-[11px]">
+                    Mẫu A, B, C (00101, 11000, 10110)
+                  </button>
+                </div>
+              </div>
+
+              <!-- CAPACITY WARNING IF MEMBERS > 2^K -->
+              <div id="binaryCapacityWarning" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                <i class="ph-bold ph-warning-octagon text-lg flex-shrink-0"></i>
+                <span id="binaryCapacityWarningText">Số lượng thành viên vượt quá 2ⁿ tổ hợp!</span>
+              </div>
+
+              <div class="overflow-x-auto border border-slate-200 rounded-xl max-h-64 custom-scroll bg-white">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead class="sticky top-0 bg-slate-100 text-slate-700 border-b border-slate-200 text-[11px] z-10">
+                    <tr>
+                      <th class="py-2 px-2.5 font-bold w-10">#</th>
+                      <th class="py-2 px-2.5 font-bold">Thành viên</th>
+                      <th class="py-2 px-2.5 font-bold">Mã nhị phân</th>
+                      <th class="py-2 px-2.5 font-bold">Các vị trí bị xóa (Bit = 1)</th>
+                      <th class="py-2 px-2.5 font-bold text-right">Xem trên PDF</th>
+                    </tr>
+                  </thead>
+                  <tbody id="binaryMemberAssignmentTbody" class="divide-y divide-slate-100"></tbody>
+                </table>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
+                <label class="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input type="checkbox" id="chkIncludeCodeInFilename" class="rounded text-rose-600 focus:ring-rose-500">
+                  <span>Ghi kèm mã nhị phân vào tên file PDF của từng thành viên</span>
+                </label>
+                <span class="text-slate-400">Có thể gõ sửa trực tiếp chuỗi <code>0</code> / <code>1</code> ở cột Mã nhị phân</span>
+              </div>
+            </div>
+
           </div>
         </div>
+        <!-- END OPTIONAL BINARY FEATURE -->
 
         <!-- STEP 4: ACTION & PROGRESS -->
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
@@ -327,10 +539,16 @@
             <div class="text-xs text-slate-500">
               <p id="summaryText">Chưa sẵn sàng xử lý. Vui lòng tải file PDF lên.</p>
             </div>
-            <button id="btnProcessBatch" onclick="startBatchProcessing()" disabled class="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all">
-              <i class="ph-bold ph-lightning text-lg"></i>
-              <span id="btnProcessLabel">BẮT ĐẦU ĐÓNG DẤU & XUẤT ZIP</span>
-            </button>
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+              <button id="btnExportTrackingOnly" onclick="exportTrackingPdfStandalone()" disabled class="hidden px-4 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-xs flex items-center justify-center gap-1.5 transition-all" title="Tải ngay 1 file PDF lưu các vị trí khoanh đỏ và bảng mã nhị phân">
+                <i class="ph-bold ph-file-search text-base"></i>
+                <span>Xuất riêng PDF Truy Vết</span>
+              </button>
+              <button id="btnProcessBatch" onclick="startBatchProcessing()" disabled class="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-sm shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 transition-all">
+                <i class="ph-bold ph-lightning text-lg"></i>
+                <span id="btnProcessLabel">BẮT ĐẦU ĐÓNG DẤU & XUẤT ZIP</span>
+              </button>
+            </div>
           </div>
 
           <!-- PROGRESS BAR -->
@@ -353,10 +571,13 @@
               <i class="ph-bold ph-check-circle text-xl text-emerald-600"></i>
               <span>Hoàn tất thành công! Đã tự động tải file ZIP về máy.</span>
             </div>
-            <p id="successDetailText" class="text-xs text-emerald-700">Tất cả file PDF đã được đóng dấu với chất lượng vector nguyên bản 100%.</p>
-            <div class="flex items-center gap-3">
+            <p id="successDetailText" class="text-xs text-emerald-700">Tất cả các file PDF đã được xử lý hoàn tất.</p>
+            <div class="flex flex-wrap items-center gap-3">
               <button id="btnReDownloadZip" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm">
                 <i class="ph-bold ph-download-simple"></i> Tải lại file ZIP
+              </button>
+              <button id="btnReDownloadTrackingPdf" class="hidden px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                <i class="ph-bold ph-file-pdf"></i> Tải riêng file PDF Truy Vết (Khoanh đỏ)
               </button>
               <button onclick="resetAllData(false)" class="text-xs text-emerald-800 hover:underline">
                 Đóng dấu tiếp phiên khác
@@ -368,59 +589,155 @@
 
       </div>
 
-      <!-- RIGHT: LIVE PREVIEW (5 COLS) -->
+      <!-- RIGHT: LIVE PREVIEW & EXPANDABLE FULLSCREEN STUDIO (5 COLS) -->
       <div class="lg:col-span-5 space-y-4">
         
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm sticky top-20">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-              <i class="ph-bold ph-eye text-blue-600 text-base"></i>
-              <span>Xem trước thời gian thực (Live Preview)</span>
-            </h2>
-            <div class="flex items-center gap-1 text-[11px]">
-              <button id="btnPrevPage" onclick="changePreviewPage(-1)" disabled class="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
-                <i class="ph-bold ph-caret-left"></i>
+        <!-- STUDIO BACKDROP WHEN FULLSCREEN -->
+        <div id="studioFullscreenBackdrop" onclick="toggleStudioFullscreen(false)" class="hidden fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-40"></div>
+
+        <div id="previewStudioCard" class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm sticky top-20 space-y-3 transition-all">
+          <!-- HEADER BAR WITH ZOOM & FULLSCREEN BUTTON -->
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                <i class="ph-bold ph-eye text-blue-600 text-base"></i>
+                <span id="previewPanelTitle">Xem trước (Live Preview)</span>
+              </h2>
+              <button type="button" id="btnToggleFullscreenStudio" onclick="toggleStudioFullscreen()" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold flex items-center gap-1 transition-all shadow-sm" title="Phóng to toàn màn hình để tô xóa dễ dàng (Phím ESC để thu nhỏ)">
+                <i id="iconFullscreenStudio" class="ph-bold ph-corners-out"></i>
+                <span id="lblFullscreenStudio">Phóng to toàn màn hình</span>
               </button>
-              <span id="previewPageIndicator" class="font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Trang 1 / 1</span>
-              <button id="btnNextPage" onclick="changePreviewPage(1)" disabled class="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
-                <i class="ph-bold ph-caret-right"></i>
+            </div>
+
+            <div class="flex items-center gap-1.5 text-[11px]">
+              <!-- ZOOM CONTROLS -->
+              <div class="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+                <button type="button" onclick="changePreviewZoom(-0.25)" class="px-1.5 py-0.5 rounded hover:bg-white text-slate-700 font-bold" title="Thu nhỏ">-</button>
+                <span id="lblPreviewZoom" onclick="resetPreviewZoom()" class="px-1.5 font-mono font-bold text-indigo-700 cursor-pointer" title="Bấm để về 100%">100%</span>
+                <button type="button" onclick="changePreviewZoom(0.25)" class="px-1.5 py-0.5 rounded hover:bg-white text-slate-700 font-bold" title="Phóng to độ nét cao">+</button>
+              </div>
+
+              <!-- PAGE NAV -->
+              <div class="flex items-center gap-1">
+                <button id="btnPrevPage" onclick="changePreviewPage(-1)" disabled class="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+                  <i class="ph-bold ph-caret-left"></i>
+                </button>
+                <span id="previewPageIndicator" class="font-bold bg-slate-100 text-slate-700 px-2 py-1 rounded-lg">Trang 1 / 1</span>
+                <button id="btnNextPage" onclick="changePreviewPage(1)" disabled class="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed">
+                  <i class="ph-bold ph-caret-right"></i>
+                </button>
+              </div>
+
+              <button type="button" id="btnCloseFullscreenTop" onclick="toggleStudioFullscreen(false)" class="hidden px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1 shadow">
+                <i class="ph-bold ph-x"></i> Đóng phóng đại (ESC)
               </button>
             </div>
           </div>
 
-          <!-- CANVAS WRAPPER -->
-          <div class="relative bg-slate-100 rounded-xl overflow-hidden border border-slate-200 min-h-[460px] flex items-center justify-center p-3 select-none">
+          <!-- QUICK PAGE PILLS (ONLY SHOWN WHEN BINARY FEATURE IS ENABLED) -->
+          <div id="pagePillsBar" class="hidden flex items-center gap-1.5 overflow-x-auto py-1 custom-scroll"></div>
+
+          <!-- BINARY INTERACTIVE TOOLBAR (ONLY SHOWN WHEN BINARY FEATURE IS ENABLED) -->
+          <div id="binaryCanvasToolbar" class="hidden bg-rose-50/70 border border-rose-200 rounded-xl p-2.5 space-y-2.5 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              <button type="button" id="btnToolEraser" onclick="setBinaryTool('eraser')" class="py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 bg-slate-900 text-white shadow-sm transition-all">
+                <i class="ph-bold ph-paint-brush-broad text-sm text-amber-300"></i>
+                <span>1. Bút trắng xóa ký tự (Click / Tô)</span>
+              </button>
+              <button type="button" id="btnToolRedCircle" onclick="setBinaryTool('circle')" class="py-2 px-3 rounded-lg font-semibold flex items-center justify-center gap-1.5 bg-white text-rose-700 border border-rose-200 hover:bg-rose-50 transition-all">
+                <i class="ph-bold ph-circle-dashed text-sm text-rose-600"></i>
+                <span>2. Đặt / Chỉnh ô tròn đỏ truy vết</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1.5 border-t border-rose-200/60 text-[11px]">
+              <div>
+                <div class="flex justify-between text-slate-700 font-medium mb-0.5">
+                  <span>Cỡ đầu bút trắng:</span>
+                  <span id="lblBrushSize" class="font-mono font-bold text-slate-900">8px</span>
+                </div>
+                <input type="range" id="rngBrushSize" min="3" max="24" value="8" class="w-full accent-slate-800 cursor-pointer" oninput="updateBrushSize(this.value)">
+              </div>
+              <div>
+                <div class="flex justify-between text-slate-700 font-medium mb-0.5">
+                  <span>Bán kính ô tròn đỏ:</span>
+                  <span id="lblCircleRadius" class="font-mono font-bold text-rose-600">20px</span>
+                </div>
+                <input type="range" id="rngCircleRadius" min="10" max="45" value="20" class="w-full accent-rose-600 cursor-pointer" oninput="updateCircleRadius(this.value)">
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-rose-200/60 text-[11px]">
+              <div class="flex items-center gap-1.5">
+                <span class="text-slate-600 font-medium">Chế độ xem:</span>
+                <select id="binaryPreviewSimMode" onchange="onBinarySimModeChange()" class="p-1 rounded border border-slate-300 bg-white font-semibold text-slate-700">
+                  <option value="admin">Quản trị (Bút trắng + Ô đỏ)</option>
+                  <option value="bit1">Mô phỏng Bit = 1 (Đã xóa ký tự)</option>
+                  <option value="bit0">Mô phỏng Bit = 0 (Giữ nguyên)</option>
+                  <option value="member">Xem theo Thành viên đang chọn</option>
+                </select>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <label class="flex items-center gap-1 cursor-pointer select-none text-slate-700 font-medium mr-1">
+                  <input type="checkbox" id="chkShowMagnifier" checked class="rounded text-rose-600">
+                  <span>Kính lúp 4x</span>
+                </label>
+                <button type="button" onclick="undoLastBinaryStroke()" class="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-medium flex items-center gap-1" title="Hoàn tác nét bút vừa chấm">
+                  <i class="ph-bold ph-arrow-u-up-left"></i> Hoàn tác
+                </button>
+                <button type="button" onclick="clearCurrentPageBinaryMark()" class="px-2 py-1 rounded bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 font-medium flex items-center gap-1" title="Xóa dấu trên trang hiện tại">
+                  <i class="ph-bold ph-trash"></i> Xóa dấu trang này
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CANVAS SCROLLABLE VIEWPORT -->
+          <div id="previewCanvasViewportWrapper" class="relative bg-slate-200/80 rounded-xl overflow-auto border border-slate-300 min-h-[480px] max-h-[640px] flex items-start justify-center p-4 select-none custom-scroll">
             
             <!-- EMPTY STATE -->
-            <div id="previewEmptyState" class="text-center p-6 space-y-2">
-              <div class="w-12 h-12 rounded-full bg-slate-200/70 text-slate-400 flex items-center justify-center mx-auto">
+            <div id="previewEmptyState" class="my-auto text-center p-6 space-y-2">
+              <div class="w-12 h-12 rounded-full bg-slate-300/70 text-slate-500 flex items-center justify-center mx-auto">
                 <i class="ph-duotone ph-file-magnifying-glass text-2xl"></i>
               </div>
-              <p class="text-xs font-semibold text-slate-600">Chưa tải file PDF</p>
-              <p class="text-[11px] text-slate-400 max-w-[220px] mx-auto">Hãy tải tài liệu PDF lên hoặc bấm nút <strong class="text-blue-600 cursor-pointer" onclick="generateSamplePdf()">"Tạo PDF mẫu thử"</strong> để xem trực quan</p>
+              <p class="text-xs font-semibold text-slate-700">Chưa tải file PDF</p>
+              <p class="text-[11px] text-slate-500 max-w-[220px] mx-auto">Hãy tải tài liệu PDF lên hoặc bấm nút <strong class="text-blue-600 cursor-pointer" onclick="generateSamplePdf(false)">"Tạo PDF mẫu thử"</strong> để xem trực quan</p>
             </div>
 
             <!-- CANVAS CONTAINER -->
-            <div id="previewCanvasContainer" class="hidden relative max-w-full max-h-[580px] shadow-lg rounded overflow-hidden">
-              <canvas id="pdfPreviewCanvas" class="block max-w-full h-auto bg-white"></canvas>
+            <div id="previewCanvasContainer" class="hidden relative shadow-xl rounded bg-white my-auto flex-shrink-0">
+              <canvas id="pdfPreviewCanvas" class="block bg-white"></canvas>
               <canvas id="watermarkPreviewCanvas" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+              <!-- LIVE BRUSH CURSOR RING -->
+              <div id="brushCursorRing" class="hidden pointer-events-none absolute rounded-full border-2 border-rose-600 bg-white/40 shadow-sm z-20" style="transform: translate(-50%, -50%);"></div>
+            </div>
+
+            <!-- MAGNIFIER LOUPE 4X FOR PRECISE PUNCTUATION ERASURE -->
+            <div id="magnifierLoupe" class="hidden pointer-events-none sticky top-2 left-2 w-40 h-40 rounded-full border-4 border-rose-600 shadow-2xl overflow-hidden bg-white z-30 flex-shrink-0">
+              <canvas id="magnifierCanvas" width="160" height="160" class="w-full h-full block"></canvas>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div id="magnifierTargetRing" class="w-4 h-4 rounded-full border-2 border-rose-500/90"></div>
+              </div>
+              <div class="absolute bottom-1 inset-x-0 text-center text-[10px] font-bold bg-slate-900/80 text-white py-0.5">Kính lúp 4x</div>
             </div>
 
             <!-- SAMPLE NAME BADGE -->
-            <div id="previewSampleBadge" class="hidden absolute top-2 right-2 flex flex-col items-end gap-1 pointer-events-none">
-              <div class="bg-slate-900/80 backdrop-blur text-white text-[10px] px-2.5 py-1 rounded-full shadow">
-                Mẫu: <span id="lblPreviewName" class="font-semibold text-blue-300">NGUYỄN VĂN AN</span>
+            <div id="previewSampleBadge" class="hidden absolute top-3 right-3 flex flex-col items-end gap-1 pointer-events-none z-20">
+              <div class="bg-slate-900/85 backdrop-blur text-white text-[10px] px-2.5 py-1 rounded-full shadow">
+                <span id="lblPreviewBadgeTitle">Mẫu:</span> <span id="lblPreviewName" class="font-semibold text-blue-300">NGUYỄN VĂN AN</span>
               </div>
-              <div id="antiCopyStatusPill" class="hidden bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-1">
-                <i class="ph-bold ph-lock-key"></i> ĐÃ BẬT CHỐNG COPY
+              <div id="pageBitStatusPill" class="hidden bg-rose-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow">
+                Chưa đánh dấu trang này
               </div>
             </div>
 
           </div>
 
-          <div class="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-            <span class="flex items-center gap-1"><i class="ph-bold ph-check"></i> Xem đúng tỷ lệ & độ mờ thực tế</span>
-            <span class="flex items-center gap-1"><i class="ph-bold ph-arrows-out-simple"></i> Thu phóng tự động theo khung</span>
+          <div class="mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+            <span id="previewHintLeft" class="flex items-center gap-1"><i class="ph-bold ph-check"></i> Xem đúng tỷ lệ & độ mờ thực tế</span>
+            <span class="flex items-center gap-1 text-indigo-600 font-medium cursor-pointer hover:underline" onclick="toggleStudioFullscreen()">
+              <i class="ph-bold ph-arrows-out-simple"></i> Mẹo: Bấm "Phóng to toàn màn hình" hoặc nút (+) để tô xóa dễ nhất
+            </span>
           </div>
 
         </div>
@@ -463,17 +780,6 @@
           </p>
           <p>Tài liệu PDF gốc, danh sách họ tên người nhận và các file đã đóng dấu chỉ tồn tại trong bộ nhớ RAM tạm thời của tab trình duyệt. Ngay khi bạn bấm <strong>F5 (Refresh)</strong> hoặc <strong>Đóng tab</strong>, trình duyệt sẽ tự động giải phóng RAM và xóa sạch 100%.</p>
         </div>
-
-        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-          <p class="font-bold text-slate-800 flex items-center gap-1.5">
-            <i class="ph-fill ph-check-circle text-emerald-600"></i> Cách tự kiểm tra bằng mắt thường:
-          </p>
-          <ol class="list-decimal list-inside space-y-1 text-slate-500">
-            <li>Nhấn phím <kbd class="px-1.5 py-0.5 bg-slate-200 rounded text-[10px] font-mono">F12</kbd> &rarr; chọn tab <strong>Network</strong>.</li>
-            <li>Bấm bắt đầu đóng dấu: bạn sẽ thấy <strong>0 byte</strong> nào được gửi lên mạng.</li>
-            <li>Bạn có thể ngắt kết nối mạng Internet (rút dây mạng hoặc ngắt Wi-Fi) trước khi tải file PDF lên để yên tâm tuyệt đối.</li>
-          </ol>
-        </div>
       </div>
 
       <div class="pt-2 flex justify-end">
@@ -484,13 +790,159 @@
     </div>
   </div>
 
+  <!-- BINARY STEGANOGRAPHY DETAILED GUIDE MODAL -->
+  <div id="binaryGuideModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target === this) closeBinaryGuideModal()">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-rose-100 overflow-hidden">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-gradient-to-r from-rose-600 to-indigo-600 text-white flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-xl">
+            <i class="ph-bold ph-book-open-text"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold">Hướng Dẫn Sử Dụng: Mã Hóa Nhị Phân & Truy Vết Tài Liệu</h3>
+            <p class="text-xs text-rose-100">Phương pháp ẩn mã truy vết bằng Bút trắng xóa dấu câu & Khoanh đỏ vị trí</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeBinaryGuideModal()" class="text-white/80 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Scrollable Content -->
+      <div class="p-6 overflow-y-auto custom-scroll space-y-5 text-xs text-slate-700 leading-relaxed">
+
+        <!-- 1. Nguyên lý hoạt động -->
+        <div class="p-4 rounded-xl bg-rose-50/70 border border-rose-200 space-y-2">
+          <h4 class="font-bold text-sm text-rose-900 flex items-center gap-1.5">
+            <i class="ph-fill ph-lightbulb text-rose-600 text-base"></i>
+            1. Nguyên lý hoạt động & Quy tắc chống đảo trang
+          </h4>
+          <p>
+            Thay vì chỉ chèn chữ mờ dễ bị chú ý, Quản trị viên chọn <strong>n vị trí dấu câu hoặc ký tự nhỏ</strong> (dấu chấm, dấu phẩy, nét chữ...) nằm trên <strong>n trang khác nhau</strong> và dùng công cụ <strong>Bút màu trắng</strong> xóa đi.
+          </p>
+          <ul class="list-disc list-inside space-y-1 text-slate-700 pl-1">
+            <li>Mỗi vị trí có 2 trạng thái nhị phân: <code class="px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded font-mono-code font-bold">0</code> = <strong>Giữ nguyên ký tự</strong>, <code class="px-1.5 py-0.5 bg-rose-600 text-white rounded font-mono-code font-bold">1</code> = <strong>Xóa ký tự bằng bút trắng</strong>.</li>
+            <li>Với <strong>n vị trí</strong> (thuộc n trang), hệ thống tạo được <strong>2ⁿ phiên bản PDF khác nhau</strong> (Ví dụ: chọn 5 vị trí trên 5 trang &rarr; <strong>2⁵ = 32 phiên bản</strong>; chọn 6 vị trí &rarr; <strong>64 phiên bản</strong>).</li>
+            <li><strong>Lưu ý quan trọng:</strong> Hệ thống khóa chặt quy tắc <strong>chỉ xóa tối đa 1 dấu trên mỗi trang</strong>. Nhờ đó, dù người làm lộ có xáo trộn hoặc đảo thứ tự các trang PDF khi phát tán thì Quản trị viên vẫn đối chiếu đúng từng trang để đọc ra bit của trang đó.</li>
+          </ul>
+        </div>
+
+        <!-- 2. Các bước thực hiện -->
+        <div class="space-y-3">
+          <h4 class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+            <i class="ph-fill ph-list-numbers text-indigo-600 text-base"></i>
+            2. Quy trình 4 bước thao tác dành cho Quản trị viên
+          </h4>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">1</span>
+                <span>Tải PDF & Nhập danh sách người nhận</span>
+              </div>
+              <p class="text-slate-600 text-[11px]">
+                Tải file PDF gốc ở <strong>Bước 1</strong> và nhập tên các thành viên ở <strong>Bước 2</strong> (mỗi người 1 dòng). Bật công tắc <strong>Chức năng Mã hóa nhị phân</strong>.
+              </p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">2</span>
+                <span>Mở Bảng Vẽ Phóng Đại & Chấm xóa dấu</span>
+              </div>
+              <p class="text-slate-600 text-[11px]">
+                Bấm nút <strong>"Mở Bảng Vẽ Phóng Đại Toàn Màn Hình"</strong> (hoặc nút Zoom <code>+</code>). Dùng <strong>Bút trắng xóa dấu</strong> chấm đè lên 1 dấu câu trên trang. Hệ thống sẽ tự động đặt <strong>Ô Tròn Đỏ</strong> bao quanh vị trí đó (bạn có thể chọn công cụ <em>Đặt Ô Tròn Đỏ</em> để chỉnh lại tâm vòng đỏ nếu muốn). Chuyển sang trang tiếp theo để chọn vị trí thứ 2, 3...
+              </p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">3</span>
+                <span>Kiểm tra & Cấp mã nhị phân</span>
+              </div>
+              <p class="text-slate-600 text-[11px]">
+                Tại <strong>Bảng phân phối Mã Nhị Phân</strong>, hệ thống tự động gán mã riêng cho từng người (tuần tự hoặc ngẫu nhiên), hoặc bạn tự gõ chuỗi <code>0</code>/<code>1</code>. Bấm <strong>"Xem thử"</strong> cạnh tên từng người để xem trước trang PDF của người đó khi bị xóa dấu.
+              </p>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">4</span>
+                <span>Xuất file PDF thành viên & Hồ sơ truy vết</span>
+              </div>
+              <p class="text-slate-600 text-[11px]">
+                Bấm nút tạo file ở <strong>Bước 4</strong>. File ZIP tải về sẽ gồm: <strong>Các file PDF riêng của từng thành viên</strong> (chỉ xóa trắng tại các bit = <code>1</code>, hoàn toàn không có vòng đỏ) + <strong>01 file PDF Hồ Sơ Truy Vết Khoanh Đỏ</strong> dành riêng cho Quản trị viên lưu giữ.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Ví dụ minh họa & Cách truy vết -->
+        <div class="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200 space-y-2.5">
+          <h4 class="font-bold text-sm text-indigo-950 flex items-center gap-1.5">
+            <i class="ph-fill ph-detective text-indigo-600 text-base"></i>
+            3. Ví dụ minh họa & Cách dùng File Hồ Sơ Truy Vết khi có rò rỉ
+          </h4>
+          <p class="text-slate-700">
+            Giả sử Quản trị viên chọn <strong>5 vị trí</strong> (thuộc 5 trang khác nhau):
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+            <div class="bg-white p-2.5 rounded-lg border border-indigo-100">
+              <span class="font-bold text-slate-800">Thành viên A:</span> <code class="font-mono-code font-bold text-indigo-700">00101</code>
+              <p class="text-slate-500 mt-0.5">&rarr; Xóa ký tự tại <strong>vị trí 3 và 5</strong>.</p>
+            </div>
+            <div class="bg-white p-2.5 rounded-lg border border-indigo-100">
+              <span class="font-bold text-slate-800">Thành viên B:</span> <code class="font-mono-code font-bold text-indigo-700">11000</code>
+              <p class="text-slate-500 mt-0.5">&rarr; Xóa ký tự tại <strong>vị trí 1 và 2</strong>.</p>
+            </div>
+            <div class="bg-white p-2.5 rounded-lg border border-indigo-100">
+              <span class="font-bold text-slate-800">Thành viên C:</span> <code class="font-mono-code font-bold text-indigo-700">10110</code>
+              <p class="text-slate-500 mt-0.5">&rarr; Xóa ký tự tại <strong>vị trí 1, 3 và 4</strong>.</p>
+            </div>
+          </div>
+          <p class="text-[11px] text-slate-700 pt-1">
+            <strong>Khi phát hiện 1 bản PDF hoặc ảnh chụp tài liệu bị rò rỉ:</strong> Quản trị viên mở file <code>00_HO_SO_TRUY_VET_KHOANH_DO_...pdf</code>, nhìn vào các <strong>ô tròn đỏ</strong> đã đánh dấu sẵn để đối chiếu với tài liệu bị lộ theo thứ tự từ vị trí #1 đến hết: trang nào còn nguyên ký tự ghi <code>0</code>, trang nào bị mất ký tự ghi <code>1</code> &rarr; Đối chiếu chuỗi nhị phân thu được với Bảng danh sách ngay trang đầu của Hồ sơ truy vết để xác định chính xác người làm lộ.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+        <button type="button" onclick="closeBinaryGuideModal(); loadFullBinaryDemo();" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors">
+          <i class="ph-bold ph-magic-wand"></i> Thử nạp ngay Ví dụ mẫu 5 trang (A, B, C)
+        </button>
+        <button type="button" onclick="closeBinaryGuideModal()" class="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors">
+          Đã hiểu hướng dẫn
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- JAVASCRIPT LOGIC -->
   <script>
     // Set PDF.js worker
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+    // Built-in Transparent ALC Logo (HMU_C) Data URI
+    const DEFAULT_ALC_LOGO_DATA_URI = 'data:image/png;base64,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';
+
+    const alcLogoImage = new Image();
+    alcLogoImage.onload = () => {
+      const previewImg = document.getElementById('batchLogoPreviewImg');
+      if (previewImg && !previewImg.src) previewImg.src = alcLogoImage.src;
+      if (typeof updatePreview === 'function') updatePreview();
+    };
+    alcLogoImage.src = DEFAULT_ALC_LOGO_DATA_URI;
+    setTimeout(() => {
+      const previewImg = document.getElementById('batchLogoPreviewImg');
+      if (previewImg) previewImg.src = DEFAULT_ALC_LOGO_DATA_URI;
+    }, 0);
+
     // State Variables
     let currentMode = 'recipient'; // 'recipient' | 'batch'
+    let binaryFeatureEnabled = false; // Toggled on/off by user
     let selectedFiles = []; // Array of File objects
     let originalPdfBytes = null; // Uint8Array of selected single PDF
     let pdfDocPreview = null; // PDF.js doc for rendering preview
@@ -499,12 +951,25 @@
     let previewViewport = null;
     let customFontBytes = null; // Roboto font bytes for Vietnamese
     let lastGeneratedZipBlob = null;
+    let lastGeneratedTrackingPdfBlob = null;
 
-    // Watermark Configuration
+    // Binary Steganography State (1 mark per page, white brush + red circle)
+    let binaryMarksByPage = {};
+    let currentBinaryTool = 'eraser'; // 'eraser' | 'circle'
+    let binaryBrushSizePx = 8;
+    let binaryCircleRadiusPx = 20;
+    let isDrawingBinary = false;
+    let currentStrokePoints = [];
+    let previewSimulatedMemberIdx = 0;
+    let memberBinaryAssignments = []; // Array of { name: string, code: string }
+    let isStudioFullscreen = false;
+    let previewZoomFactor = 1.0;
+
+    // Watermark Configuration (150 DPI flatten is ALWAYS mandatory & runs silently under the hood)
     let config = {
       angle: 45,
       fontSize: 42,
-      opacity: 0.20,
+      opacity: 0.22,
       color: '#64748b',
       layout: 'center',
       pageRange: 'all',
@@ -512,27 +977,133 @@
       subtext: '',
       autoUppercase: true,
       removeAccents: false,
-      antiCopy: false // Anti-Copy / Flatten to image
+      enableTextWatermarkWhenBinary: true,
+      logoScalePercent: 52,
+      headerFontSize: 13
     };
 
-    // Toggle Anti-Copy
-    function toggleAntiCopy(checked) {
-      config.antiCopy = checked;
-      const details = document.getElementById('antiCopyDetails');
-      const pill = document.getElementById('antiCopyStatusPill');
+    function getSortedBinaryPositions() {
+      return Object.values(binaryMarksByPage)
+        .filter(m => m && m.strokes && m.strokes.length > 0)
+        .sort((a, b) => a.page - b.page);
+    }
 
-      if (checked) {
-        details.classList.remove('hidden');
-        pill.classList.remove('hidden');
+    // Fullscreen Studio & High-Res Zoom Controls
+    function toggleStudioFullscreen(forceState) {
+      if (typeof forceState === 'boolean') {
+        isStudioFullscreen = forceState;
       } else {
-        details.classList.add('hidden');
-        pill.classList.add('hidden');
+        isStudioFullscreen = !isStudioFullscreen;
+      }
+
+      const card = document.getElementById('previewStudioCard');
+      const backdrop = document.getElementById('studioFullscreenBackdrop');
+      const viewportWrap = document.getElementById('previewCanvasViewportWrapper');
+      const lblBtn = document.getElementById('lblFullscreenStudio');
+      const iconBtn = document.getElementById('iconFullscreenStudio');
+      const btnCloseTop = document.getElementById('btnCloseFullscreenTop');
+
+      if (isStudioFullscreen) {
+        backdrop.classList.remove('hidden');
+        card.className = 'fixed inset-2 sm:inset-4 z-50 bg-white rounded-2xl border-2 border-indigo-500 p-4 sm:p-5 shadow-2xl flex flex-col space-y-3';
+        viewportWrap.className = 'relative bg-slate-200/90 rounded-xl overflow-auto border border-slate-300 flex-1 min-h-0 flex items-start justify-center p-6 select-none custom-scroll';
+        lblBtn.innerText = 'Thu nhỏ về khung bên phải';
+        iconBtn.className = 'ph-bold ph-corners-in';
+        btnCloseTop.classList.remove('hidden');
+      } else {
+        backdrop.classList.add('hidden');
+        card.className = 'bg-white rounded-2xl border border-slate-200 p-4 shadow-sm sticky top-20 space-y-3 transition-all';
+        viewportWrap.className = 'relative bg-slate-200/80 rounded-xl overflow-auto border border-slate-300 min-h-[480px] max-h-[640px] flex items-start justify-center p-4 select-none custom-scroll';
+        lblBtn.innerText = 'Phóng to toàn màn hình';
+        iconBtn.className = 'ph-bold ph-corners-out';
+        btnCloseTop.classList.add('hidden');
+      }
+
+      renderCurrentPreviewPage();
+    }
+
+    function changePreviewZoom(delta) {
+      previewZoomFactor = Math.max(0.75, Math.min(2.5, Math.round((previewZoomFactor + delta) * 100) / 100));
+      document.getElementById('lblPreviewZoom').innerText = Math.round(previewZoomFactor * 100) + '%';
+      renderCurrentPreviewPage();
+    }
+
+    function resetPreviewZoom() {
+      previewZoomFactor = 1.0;
+      document.getElementById('lblPreviewZoom').innerText = '100%';
+      renderCurrentPreviewPage();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const guideModal = document.getElementById('binaryGuideModal');
+        if (guideModal && !guideModal.classList.contains('hidden')) {
+          closeBinaryGuideModal();
+          return;
+        }
+        if (isStudioFullscreen) {
+          toggleStudioFullscreen(false);
+        }
+      }
+    });
+
+    // Toggle Optional Binary Steganography Feature
+    function toggleBinaryFeature(enabled) {
+      binaryFeatureEnabled = enabled;
+      const body = document.getElementById('binaryFeatureBody');
+      const toolbar = document.getElementById('binaryCanvasToolbar');
+      const pillsBar = document.getElementById('pagePillsBar');
+      const btnExportTracking = document.getElementById('btnExportTrackingOnly');
+      const wmCanvas = document.getElementById('watermarkPreviewCanvas');
+      const lblEnableTextWm = document.getElementById('lblEnableTextWatermark');
+      const previewHintLeft = document.getElementById('previewHintLeft');
+
+      if (enabled) {
+        if (currentMode === 'batch') {
+          switchMode('recipient');
+        }
+        body.classList.remove('hidden');
+        toolbar.classList.remove('hidden');
+        btnExportTracking.classList.remove('hidden');
+        lblEnableTextWm.classList.remove('hidden');
+        lblEnableTextWm.classList.add('flex');
+        wmCanvas.classList.remove('pointer-events-none');
+        setBinaryTool(currentBinaryTool);
+        if (pdfDocPreview) pillsBar.classList.remove('hidden');
+        previewHintLeft.innerHTML = '<i class="ph-bold ph-hand-pointing text-rose-600"></i> Click hoặc kéo chuột lên dấu câu/ký tự trên trang để xóa trắng';
+        regenerateMemberBinaryCodes(false);
+        renderPagePillsBar();
+      } else {
+        body.classList.add('hidden');
+        toolbar.classList.add('hidden');
+        pillsBar.classList.add('hidden');
+        btnExportTracking.classList.add('hidden');
+        lblEnableTextWm.classList.add('hidden');
+        lblEnableTextWm.classList.remove('flex');
+        wmCanvas.classList.add('pointer-events-none');
+        wmCanvas.classList.remove('canvas-cursor-eraser', 'canvas-cursor-circle');
+        document.getElementById('magnifierLoupe').classList.add('hidden');
+        document.getElementById('brushCursorRing').classList.add('hidden');
+        document.getElementById('watermarkStylingBody').classList.remove('opacity-40', 'pointer-events-none');
+        previewHintLeft.innerHTML = '<i class="ph-bold ph-check"></i> Xem đúng tỷ lệ & độ mờ thực tế';
       }
 
       updateSummary();
+      updatePreview();
     }
 
-    // Initialize custom font (Roboto-Medium with full Vietnamese Unicode)
+    function toggleTextWatermarkWithBinary(checked) {
+      config.enableTextWatermarkWhenBinary = checked;
+      const stylingBody = document.getElementById('watermarkStylingBody');
+      if (checked) {
+        stylingBody.classList.remove('opacity-40', 'pointer-events-none');
+      } else {
+        stylingBody.classList.add('opacity-40', 'pointer-events-none');
+      }
+      updatePreview();
+    }
+
+    // Initialize custom font
     async function initFont() {
       const badge = document.getElementById('fontStatusBadge');
       try {
@@ -546,9 +1117,9 @@
           throw new Error('Status ' + res.status);
         }
       } catch (err) {
-        console.warn('Cannot load online font, fallback to standard font (unaccented):', err);
-        badge.innerHTML = '<i class="ph-bold ph-info"></i> Chế độ Offline (Chữ không dấu)';
-        badge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200';
+        console.warn('Cannot load online font, using Canvas Unicode renderer:', err);
+        badge.innerHTML = '<i class="ph-bold ph-check-circle"></i> Font tiếng Việt sẵn sàng';
+        badge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200';
       }
     }
     initFont();
@@ -564,28 +1135,37 @@
       const uploadHeading = document.getElementById('uploadHeading');
       const uploadSubtext = document.getElementById('uploadSubtext');
       const fileInput = document.getElementById('pdfFileInput');
-      const btnSample = document.getElementById('btnSampleNames');
+      const sampleBtns = document.getElementById('recipientSampleBtns');
+      const binaryWrapper = document.getElementById('binaryFeatureWrapper');
 
       if (mode === 'recipient') {
         tabRec.className = 'pb-3 px-4 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition-all';
         tabBatch.className = 'pb-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all';
         recSection.classList.remove('hidden');
         batchSection.classList.add('hidden');
+        binaryWrapper.classList.remove('hidden');
         contentStepHeading.innerText = 'Danh sách người nhận (Mỗi dòng 1 người)';
         uploadHeading.innerText = 'Chọn file tài liệu PDF gốc';
         uploadSubtext.innerText = 'Tải lên 1 file PDF gốc cần phát cho nhiều người';
         fileInput.removeAttribute('multiple');
-        btnSample.classList.remove('hidden');
+        if (sampleBtns) sampleBtns.classList.remove('hidden');
+        setAngle(45);
       } else {
         tabBatch.className = 'pb-3 px-4 font-semibold text-sm border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 transition-all';
         tabRec.className = 'pb-3 px-4 font-medium text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 transition-all';
         recSection.classList.add('hidden');
         batchSection.classList.remove('hidden');
-        contentStepHeading.innerText = 'Nội dung Watermark cố định';
+        if (binaryFeatureEnabled) {
+          document.getElementById('chkEnableBinaryFeature').checked = false;
+          toggleBinaryFeature(false);
+        }
+        binaryWrapper.classList.add('hidden');
+        contentStepHeading.innerText = 'Cấu hình Dấu Logo ALC & Header CLB (Màu đỏ bên phải)';
         uploadHeading.innerText = 'Chọn các file PDF cần đóng dấu';
-        uploadSubtext.innerText = 'Có thể chọn nhiều file PDF cùng lúc';
+        uploadSubtext.innerText = 'Có thể chọn 1 hoặc nhiều file PDF cùng lúc';
         fileInput.setAttribute('multiple', 'true');
-        btnSample.classList.add('hidden');
+        if (sampleBtns) sampleBtns.classList.add('hidden');
+        setAngle(0);
       }
 
       updateSummary();
@@ -631,77 +1211,177 @@
       const buffer = await primaryFile.arrayBuffer();
       originalPdfBytes = new Uint8Array(buffer);
 
+      binaryMarksByPage = {};
+      currentPreviewPage = 1;
+      await loadPdfPreview(originalPdfBytes);
+
       document.getElementById('selectedFileInfo').classList.remove('hidden');
       document.getElementById('selectedFileName').innerText = currentMode === 'recipient' 
         ? primaryFile.name 
         : `${selectedFiles.length} file PDF đã chọn (${primaryFile.name}${selectedFiles.length > 1 ? ', ...' : ''})`;
       
       const sizeMb = (primaryFile.size / (1024 * 1024)).toFixed(2);
-      document.getElementById('selectedFileMeta').innerText = `${sizeMb} MB &bull; Sẵn sàng đóng dấu`;
-      document.getElementById('fileCountBadge').innerText = `${selectedFiles.length} file`;
+      document.getElementById('selectedFileMeta').innerHTML = `${sizeMb} MB &bull; ${totalPreviewPages} trang`;
+      document.getElementById('fileCountBadge').innerText = `${selectedFiles.length} file (${totalPreviewPages} trang)`;
 
-      currentPreviewPage = 1;
-      await loadPdfPreview(originalPdfBytes);
+      refreshBinaryPositionsUI();
       updateSummary();
     }
 
-    // Generate Instant Sample PDF (No local file needed)
-    async function generateSamplePdf() {
+    // Generate 5-Page Sample PDF
+    async function generateSamplePdf(withPreselectedMarks = false) {
       const { PDFDocument, StandardFonts, rgb } = PDFLib;
       const doc = await PDFDocument.create();
       const helvetica = await doc.embedFont(StandardFonts.Helvetica);
       const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
 
-      // Page 1
-      const page1 = doc.addPage([595, 842]); // A4
-      page1.drawText('CONG TY CO PHAN CONG NGHE & PHAN MEM', { x: 50, y: 780, size: 14, font: helveticaBold, color: rgb(0.1, 0.2, 0.4) });
-      page1.drawText('KE HOACH TRIEN KHAI DU AN QUY 4', { x: 50, y: 740, size: 20, font: helveticaBold, color: rgb(0.1, 0.1, 0.1) });
-      page1.drawText('Ngay lap: 16/10/2026 | Cap do: Bao mat noi bo', { x: 50, y: 715, size: 10, font: helvetica, color: rgb(0.4, 0.4, 0.4) });
-      
-      page1.drawLine({ start: { x: 50, y: 700 }, end: { x: 545, y: 700 }, thickness: 1, color: rgb(0.8, 0.8, 0.8) });
+      const pagesContent = [
+        {
+          title: 'TRANG 1: QUY DINH BAO MAT TAI LIEU NOI BO',
+          subtitle: 'Ban hanh kem theo Quyet dinh so 01/QD-BM ngay 17/10/2026',
+          sections: [
+            { h: '1. Pham vi va doi tuong ap dung:', p1: 'Tai lieu nay ap dung cho toan bo thanh vien Ban Du An Chien Luoc.', p2: 'Moi ca nhan nhan ban sao tai lieu phai chiu trach nhiem bao mat tuyet doi.' },
+            { h: '2. Nguyen tac phan phoi tai lieu:', p1: 'He thong su dung phuong phap ma hoa nhi phan tren tung trang van ban.', p2: 'Moi trang chi danh dau 01 dau cau duy nhat de chong viec dao thu tu trang.' }
+          ],
+          targetDot: { x: 467.5, y: 632.5, desc: 'Dấu chấm cuối câu "...Ban Dự Án Chiến Lược." (Trang 1)' }
+        },
+        {
+          title: 'TRANG 2: CO CHE MA HOA NHI PHAN TRUY VET',
+          subtitle: 'Tai lieu ky thuat - Phan tich trang thai Bit 0 va Bit 1',
+          sections: [
+            { h: '1. Dinh nghia trang thai tai tung vi tri:', p1: 'Trang thai 0: Giu nguyen ky tu hoac dau cau goc tren trang tai lieu.', p2: 'Trang thai 1: Xoa ky tu hoac dau cau bang cong cu but mau trang.' },
+            { h: '2. Kha nang sinh to hop phien ban:', p1: 'Voi 5 vi tri thuoc 5 trang khac nhau, he thong tao duoc 2^5 = 32 ban.', p2: 'Moi thanh vien nhan mot phien ban PDF mang ma nhi phan rieng biet.' }
+          ],
+          targetDot: { x: 465.0, y: 632.5, desc: 'Dấu chấm cuối câu "...trên trang tài liệu." (Trang 2)' }
+        },
+        {
+          title: 'TRANG 3: KE HOACH TRIEN KHAI DU AN QUY 4',
+          subtitle: 'Thong tin tien do & phan cong nhiem vu cac bo phan',
+          sections: [
+            { h: '1. Giai doan 1 - Chuan bi ha tang:', p1: 'Hoan thanh kiem thu bao mat he thong truoc ngay 25/10/2026.', p2: 'Toan bo ho so thiet ke duoc ma hoa nhi phan truoc khi ban giao.' },
+            { h: '2. Giai doan 2 - Nghiem thu chinh thuc:', p1: 'Bao cao ket qua danh gia an toan thong tin len Hoi dong Quan tri.', p2: 'Luu tru ban goc PDF khoanh do de doi chieu khi phat hien ro ri.' }
+          ],
+          targetDot: { x: 438.5, y: 632.5, desc: 'Dấu chấm cuối câu "...trước ngày 25/10/2026." (Trang 3)' }
+        },
+        {
+          title: 'TRANG 4: QUY TRINH DOI CHIEU VA TRUY VET RO RI',
+          subtitle: 'Huong dan danh cho Quan tri vien khi thu hoi tai lieu',
+          sections: [
+            { h: '1. Kiem tra cac vi tri khoanh do:', p1: 'Quan tri vien mo file PDF truy vet de xem cac vi tri da khoanh do.', p2: 'Doi chieu tung trang: neu ky tu con nguyen ghi 0, neu bi xoa ghi 1.' },
+            { h: '2. Khang dinh danh tinh nguoi lam lo:', p1: 'Vi moi trang chi xoa 1 dau nen du doi thu dao trang van truy vet duoc.', p2: 'Tra cuu chuoi bit thu duoc trong bang phan phoi ma nhi phan.' }
+          ],
+          targetDot: { x: 467.0, y: 632.5, desc: 'Dấu chấm cuối câu "...các vị trí đã khoanh đỏ." (Trang 4)' }
+        },
+        {
+          title: 'TRANG 5: CAM KET BAO MAT THONG TIN CA NHAN',
+          subtitle: 'Dieu khoan thi hanh va xu ly vi pham',
+          sections: [
+            { h: '1. Trach nhiem cua thanh vien nhan file:', p1: 'Khong sao chep, chup anh man hinh hoac phat tan tai lieu ra ngoai.', p2: 'Moi hanh vi chia se trai phep se bi truy vet bang ma nhi phan.' },
+            { h: '2. Hieu luc thi hanh:', p1: 'Van ban nay co hieu luc ke tu ngay ky va phat hanh cho cac thanh vien.', p2: 'Ho so truy vet duoc luu giu doc lap boi Quan tri vien he thong.' }
+          ],
+          targetDot: { x: 465.5, y: 632.5, desc: 'Dấu chấm cuối câu "...phát tán tài liệu ra ngoài." (Trang 5)' }
+        }
+      ];
 
-      page1.drawText('1. MUC TIEU DU AN', { x: 50, y: 660, size: 12, font: helveticaBold, color: rgb(0.2, 0.2, 0.2) });
-      page1.drawText('Tai lieu nay quy dinh chi tiet ve quy trinh phan phoi tai lieu va bao mat du lieu.', { x: 50, y: 640, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
-      page1.drawText('Tat ca can bo nhan tai lieu co trach nhiem bao mat tuyet doi thong tin duoc giao.', { x: 50, y: 620, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+      for (let idx = 0; idx < pagesContent.length; idx++) {
+        const item = pagesContent[idx];
+        const page = doc.addPage([595, 842]);
+        page.drawText('CONG TY CONG NGHE & AN TOAN THONG TIN - BAN QUAN TRI DU AN', { x: 50, y: 785, size: 10, font: helveticaBold, color: rgb(0.4, 0.45, 0.55) });
+        page.drawText(item.title, { x: 50, y: 755, size: 16, font: helveticaBold, color: rgb(0.08, 0.12, 0.25) });
+        page.drawText(item.subtitle, { x: 50, y: 733, size: 10, font: helvetica, color: rgb(0.45, 0.45, 0.45) });
+        page.drawLine({ start: { x: 50, y: 718 }, end: { x: 545, y: 718 }, thickness: 1, color: rgb(0.82, 0.85, 0.9) });
 
-      page1.drawText('2. QUY DINH PHAN PHOI', { x: 50, y: 570, size: 12, font: helveticaBold, color: rgb(0.2, 0.2, 0.2) });
-      page1.drawText('- Moi ca nhan duoc cap 01 ban tai lieu co dinh danh watermark rieng biet.', { x: 50, y: 550, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
-      page1.drawText('- Khong chup anh, sao chep hoac chia se ra ben ngoai khi chua duoc phe duyet.', { x: 50, y: 530, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(item.sections[0].h, { x: 50, y: 665, size: 12, font: helveticaBold, color: rgb(0.15, 0.15, 0.2) });
+        page.drawText(item.sections[0].p1, { x: 50, y: 633, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) });
+        page.drawCircle({ x: item.targetDot.x, y: item.targetDot.y, size: 2.1, color: rgb(0.05, 0.05, 0.05) });
 
-      // Page 2
-      const page2 = doc.addPage([595, 842]);
-      page2.drawText('3. DANH SACH PHONG BAN AP DUNG', { x: 50, y: 780, size: 14, font: helveticaBold, color: rgb(0.1, 0.2, 0.4) });
-      page2.drawText('- Khoi Cong nghe & Ky thuat phan mem', { x: 50, y: 740, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
-      page2.drawText('- Phong Quan ly R&D va Du an chien luoc', { x: 50, y: 720, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
-      page2.drawText('- Ban Giam doc va Hoi dong Co dong', { x: 50, y: 700, size: 11, font: helvetica, color: rgb(0.3, 0.3, 0.3) });
+        page.drawText(item.sections[0].p2, { x: 50, y: 605, size: 12, font: helvetica, color: rgb(0.15, 0.15, 0.15) });
+
+        page.drawText(item.sections[1].h, { x: 50, y: 545, size: 12, font: helveticaBold, color: rgb(0.15, 0.15, 0.2) });
+        page.drawText(item.sections[1].p1, { x: 50, y: 515, size: 12, font: helvetica, color: rgb(0.15, 0.15, 0.15) });
+        page.drawText(item.sections[1].p2, { x: 50, y: 487, size: 12, font: helvetica, color: rgb(0.15, 0.15, 0.15) });
+
+        page.drawLine({ start: { x: 50, y: 70 }, end: { x: 545, y: 70 }, thickness: 0.8, color: rgb(0.85, 0.85, 0.85) });
+        page.drawText(`Tai lieu Mat - Trang ${idx + 1} / 5`, { x: 250, y: 50, size: 10, font: helvetica, color: rgb(0.5, 0.5, 0.5) });
+      }
 
       const pdfData = await doc.save();
       originalPdfBytes = new Uint8Array(pdfData);
 
-      const fakeFile = new File([pdfData], "TaiLieu_Mau_KeHoachQ4.pdf", { type: "application/pdf" });
+      const fakeFile = new File([pdfData], "TaiLieu_Mau_KeHoach_5Trang.pdf", { type: "application/pdf" });
       selectedFiles = [fakeFile];
 
       document.getElementById('selectedFileInfo').classList.remove('hidden');
       document.getElementById('selectedFileName').innerText = fakeFile.name;
-      document.getElementById('selectedFileMeta').innerText = `14 KB &bull; 2 trang (Tài liệu mẫu)`;
-      document.getElementById('fileCountBadge').innerText = `1 file`;
+      document.getElementById('selectedFileMeta').innerHTML = `18 KB &bull; 5 trang (Tài liệu mẫu)`;
+      document.getElementById('fileCountBadge').innerText = `1 file (5 trang)`;
 
-      loadSampleNames();
+      binaryMarksByPage = {};
+      if (withPreselectedMarks) {
+        for (let idx = 0; idx < pagesContent.length; idx++) {
+          const pNum = idx + 1;
+          const dot = pagesContent[idx].targetDot;
+          const nx = dot.x / 595;
+          const ny = 1 - (dot.y / 842);
+          binaryMarksByPage[pNum] = {
+            page: pNum,
+            strokes: [{ points: [{ nx, ny }], nr: 0.011 }],
+            redCircle: { nx: nx, ny: ny, nr: 0.032 },
+            note: dot.desc
+          };
+        }
+      } else if (getRecipients().length === 0) {
+        loadSampleNames();
+      }
+
       currentPreviewPage = 1;
       await loadPdfPreview(originalPdfBytes);
+      refreshBinaryPositionsUI();
       updateSummary();
+    }
+
+    async function loadFullBinaryDemo() {
+      if (!binaryFeatureEnabled) {
+        document.getElementById('chkEnableBinaryFeature').checked = true;
+        toggleBinaryFeature(true);
+      }
+      await generateSamplePdf(true);
+      loadBinaryExampleMembers();
+    }
+
+    function loadBinaryExampleMembers() {
+      const exampleMembers = ['Thành viên A', 'Thành viên B', 'Thành viên C'];
+      document.getElementById('recipientListInput').value = exampleMembers.join('\n');
+      document.getElementById('recipientCountText').innerHTML = `Đã phát hiện: <strong>3</strong> người nhận`;
+      document.getElementById('binaryAssignStrategy').value = 'custom';
+
+      const k = getSortedBinaryPositions().length || 5;
+      const presetCodes = ['00101', '11000', '10110'];
+      memberBinaryAssignments = exampleMembers.map((name, i) => {
+        let code = presetCodes[i] || (i + 1).toString(2);
+        if (code.length < k) code = code.padStart(k, '0');
+        else if (code.length > k) code = code.slice(0, k);
+        return { name, code };
+      });
+
+      renderMemberBinaryTable();
+      updateSummary();
+      updatePreview();
     }
 
     function clearSelectedFiles() {
       selectedFiles = [];
       originalPdfBytes = null;
       pdfDocPreview = null;
+      binaryMarksByPage = {};
       document.getElementById('pdfFileInput').value = '';
       document.getElementById('selectedFileInfo').classList.add('hidden');
       document.getElementById('fileCountBadge').innerText = 'Chưa có file';
       document.getElementById('previewEmptyState').classList.remove('hidden');
       document.getElementById('previewCanvasContainer').classList.add('hidden');
       document.getElementById('previewSampleBadge').classList.add('hidden');
+      document.getElementById('pagePillsBar').classList.add('hidden');
+      refreshBinaryPositionsUI();
       updateSummary();
     }
 
@@ -715,6 +1395,9 @@
         document.getElementById('previewEmptyState').classList.add('hidden');
         document.getElementById('previewCanvasContainer').classList.remove('hidden');
         document.getElementById('previewSampleBadge').classList.remove('hidden');
+        if (binaryFeatureEnabled) {
+          document.getElementById('pagePillsBar').classList.remove('hidden');
+        }
 
         await renderCurrentPreviewPage();
       } catch (err) {
@@ -728,7 +1411,9 @@
 
       const pdfCanvas = document.getElementById('pdfPreviewCanvas');
       const unscaledViewport = page.getViewport({ scale: 1 });
-      const targetWidth = 420;
+      // Base width is 460px in side panel, or 960px in Fullscreen Studio Mode, multiplied by previewZoomFactor
+      const baseWidth = isStudioFullscreen ? 960 : 460;
+      const targetWidth = Math.round(baseWidth * previewZoomFactor);
       const scale = targetWidth / unscaledViewport.width;
       previewViewport = page.getViewport({ scale: scale });
 
@@ -742,12 +1427,50 @@
       wmCanvas.width = previewViewport.width;
       wmCanvas.height = previewViewport.height;
 
-      // Update Page Controls
       document.getElementById('previewPageIndicator').innerText = `Trang ${currentPreviewPage} / ${totalPreviewPages}`;
       document.getElementById('btnPrevPage').disabled = currentPreviewPage <= 1;
       document.getElementById('btnNextPage').disabled = currentPreviewPage >= totalPreviewPages;
 
+      if (binaryFeatureEnabled) {
+        renderPagePillsBar();
+      }
       updatePreview();
+    }
+
+    function renderPagePillsBar() {
+      const bar = document.getElementById('pagePillsBar');
+      if (!pdfDocPreview || !binaryFeatureEnabled) {
+        bar.classList.add('hidden');
+        return;
+      }
+      bar.classList.remove('hidden');
+      const sorted = getSortedBinaryPositions();
+      const pageToBitIdx = {};
+      sorted.forEach((m, idx) => { pageToBitIdx[m.page] = idx + 1; });
+
+      let html = '';
+      for (let p = 1; p <= totalPreviewPages; p++) {
+        const bitIdx = pageToBitIdx[p];
+        const isCurrent = (p === currentPreviewPage);
+        if (bitIdx) {
+          html += `<button type="button" onclick="jumpToPreviewPage(${p})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 flex-shrink-0 transition-all ${isCurrent ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-300' : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'}">
+            <span>Tr.${p}</span>
+            <span class="px-1 py-0.2 rounded bg-white/20 text-[10px] font-mono-code">Vị trí #${bitIdx}</span>
+          </button>`;
+        } else {
+          html += `<button type="button" onclick="jumpToPreviewPage(${p})" class="px-2.5 py-1 rounded-lg text-[11px] font-medium flex-shrink-0 transition-all ${isCurrent ? 'bg-slate-800 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+            Tr.${p}
+          </button>`;
+        }
+      }
+      bar.innerHTML = html;
+    }
+
+    function jumpToPreviewPage(p) {
+      if (p >= 1 && p <= totalPreviewPages) {
+        currentPreviewPage = p;
+        renderCurrentPreviewPage();
+      }
     }
 
     function changePreviewPage(delta) {
@@ -758,7 +1481,322 @@
       }
     }
 
-    // Recipient Names Parsing
+    // =========================================================================
+    // INTERACTIVE CANVAS DRAWING (WHEN BINARY FEATURE IS ENABLED)
+    // =========================================================================
+    function setBinaryTool(tool) {
+      currentBinaryTool = tool;
+      const btnEraser = document.getElementById('btnToolEraser');
+      const btnCircle = document.getElementById('btnToolRedCircle');
+      const wmCanvas = document.getElementById('watermarkPreviewCanvas');
+
+      if (tool === 'eraser') {
+        btnEraser.className = 'py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 bg-slate-900 text-white shadow-sm transition-all';
+        btnCircle.className = 'py-2 px-3 rounded-lg font-semibold flex items-center justify-center gap-1.5 bg-white text-rose-700 border border-rose-200 hover:bg-rose-50 transition-all';
+        wmCanvas.classList.add('canvas-cursor-eraser');
+        wmCanvas.classList.remove('canvas-cursor-circle');
+      } else {
+        btnCircle.className = 'py-2 px-3 rounded-lg font-bold flex items-center justify-center gap-1.5 bg-rose-600 text-white shadow-sm transition-all';
+        btnEraser.className = 'py-2 px-3 rounded-lg font-semibold flex items-center justify-center gap-1.5 bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition-all';
+        wmCanvas.classList.remove('canvas-cursor-eraser');
+        wmCanvas.classList.add('canvas-cursor-circle');
+      }
+    }
+
+    function updateBrushSize(val) {
+      binaryBrushSizePx = parseInt(val);
+      document.getElementById('lblBrushSize').innerText = val + 'px';
+    }
+
+    function updateCircleRadius(val) {
+      binaryCircleRadiusPx = parseInt(val);
+      document.getElementById('lblCircleRadius').innerText = val + 'px';
+      const mark = binaryMarksByPage[currentPreviewPage];
+      if (mark && mark.redCircle) {
+        mark.redCircle.nr = binaryCircleRadiusPx / 460;
+        updatePreview();
+      }
+    }
+
+    function undoLastBinaryStroke() {
+      const mark = binaryMarksByPage[currentPreviewPage];
+      if (!mark || !mark.strokes) return;
+      mark.strokes.pop();
+      if (mark.strokes.length === 0) {
+        delete binaryMarksByPage[currentPreviewPage];
+      }
+      refreshBinaryPositionsUI();
+      renderPagePillsBar();
+      updatePreview();
+      updateSummary();
+    }
+
+    function clearCurrentPageBinaryMark() {
+      if (binaryMarksByPage[currentPreviewPage]) {
+        delete binaryMarksByPage[currentPreviewPage];
+        refreshBinaryPositionsUI();
+        renderPagePillsBar();
+        updatePreview();
+        updateSummary();
+      }
+    }
+
+    function clearAllBinaryMarks() {
+      binaryMarksByPage = {};
+      refreshBinaryPositionsUI();
+      renderPagePillsBar();
+      updatePreview();
+      updateSummary();
+    }
+
+    function getCanvasNormalizedCoords(e, canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const nx = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const ny = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      return { nx, ny };
+    }
+
+    const wmPreviewCanvasEl = document.getElementById('watermarkPreviewCanvas');
+
+    wmPreviewCanvasEl.addEventListener('mousedown', (e) => {
+      if (!binaryFeatureEnabled || !pdfDocPreview) return;
+      e.preventDefault();
+      const simSelect = document.getElementById('binaryPreviewSimMode');
+      if (simSelect.value === 'bit0') {
+        simSelect.value = 'admin';
+      }
+
+      const coords = getCanvasNormalizedCoords(e, wmPreviewCanvasEl);
+      // Use fixed reference width (460) so brush and circle sizes stay consistent regardless of zoom level
+      const nrBrush = (binaryBrushSizePx / 2) / 460;
+      const nrCircle = binaryCircleRadiusPx / 460;
+
+      if (currentBinaryTool === 'eraser') {
+        isDrawingBinary = true;
+        currentStrokePoints = [{ nx: coords.nx, ny: coords.ny }];
+
+        // Enforce 1 mark per page rule
+        const existing = binaryMarksByPage[currentPreviewPage];
+        if (!existing) {
+          binaryMarksByPage[currentPreviewPage] = {
+            page: currentPreviewPage,
+            strokes: [{ points: currentStrokePoints, nr: nrBrush }],
+            redCircle: { nx: coords.nx, ny: coords.ny, nr: nrCircle },
+            note: `Dấu ký tự tại Trang ${currentPreviewPage}`
+          };
+        } else {
+          const dist = Math.hypot(coords.nx - existing.redCircle.nx, coords.ny - existing.redCircle.ny);
+          if (dist > Math.max(existing.redCircle.nr * 1.4, 0.05)) {
+            binaryMarksByPage[currentPreviewPage] = {
+              page: currentPreviewPage,
+              strokes: [{ points: currentStrokePoints, nr: nrBrush }],
+              redCircle: { nx: coords.nx, ny: coords.ny, nr: nrCircle },
+              note: existing.note || `Dấu ký tự tại Trang ${currentPreviewPage}`
+            };
+          } else {
+            existing.strokes.push({ points: currentStrokePoints, nr: nrBrush });
+          }
+        }
+      } else if (currentBinaryTool === 'circle') {
+        if (!binaryMarksByPage[currentPreviewPage]) {
+          binaryMarksByPage[currentPreviewPage] = {
+            page: currentPreviewPage,
+            strokes: [{ points: [{ nx: coords.nx, ny: coords.ny }], nr: nrBrush }],
+            redCircle: { nx: coords.nx, ny: coords.ny, nr: nrCircle },
+            note: `Dấu ký tự tại Trang ${currentPreviewPage}`
+          };
+        } else {
+          binaryMarksByPage[currentPreviewPage].redCircle = {
+            nx: coords.nx,
+            ny: coords.ny,
+            nr: nrCircle
+          };
+        }
+        isDrawingBinary = true;
+      }
+
+      refreshBinaryPositionsUI();
+      renderPagePillsBar();
+      updatePreview();
+      updateSummary();
+      updateMagnifier(e);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (binaryFeatureEnabled && pdfDocPreview) {
+        updateMagnifier(e);
+      }
+      if (!isDrawingBinary || !binaryFeatureEnabled || !pdfDocPreview) return;
+
+      const coords = getCanvasNormalizedCoords(e, wmPreviewCanvasEl);
+      const mark = binaryMarksByPage[currentPreviewPage];
+      if (!mark) return;
+
+      if (currentBinaryTool === 'eraser' && currentStrokePoints.length > 0) {
+        const firstPt = currentStrokePoints[0];
+        if (Math.hypot(coords.nx - firstPt.nx, coords.ny - firstPt.ny) <= 0.08) {
+          currentStrokePoints.push({ nx: coords.nx, ny: coords.ny });
+          let sumX = 0, sumY = 0, count = 0;
+          mark.strokes.forEach(s => s.points.forEach(pt => { sumX += pt.nx; sumY += pt.ny; count++; }));
+          if (count > 0) {
+            mark.redCircle.nx = sumX / count;
+            mark.redCircle.ny = sumY / count;
+          }
+          updatePreview();
+        }
+      } else if (currentBinaryTool === 'circle') {
+        mark.redCircle.nx = coords.nx;
+        mark.redCircle.ny = coords.ny;
+        updatePreview();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDrawingBinary) {
+        isDrawingBinary = false;
+        currentStrokePoints = [];
+        refreshBinaryPositionsUI();
+        updatePreview();
+      }
+    });
+
+    wmPreviewCanvasEl.addEventListener('mouseleave', () => {
+      document.getElementById('magnifierLoupe').classList.add('hidden');
+      document.getElementById('brushCursorRing').classList.add('hidden');
+    });
+
+    function updateMagnifier(e) {
+      const loupe = document.getElementById('magnifierLoupe');
+      const cursorRing = document.getElementById('brushCursorRing');
+      const chk = document.getElementById('chkShowMagnifier');
+      if (!binaryFeatureEnabled || !pdfDocPreview) {
+        loupe.classList.add('hidden');
+        cursorRing.classList.add('hidden');
+        return;
+      }
+
+      const rect = wmPreviewCanvasEl.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) {
+        loupe.classList.add('hidden');
+        cursorRing.classList.add('hidden');
+        return;
+      }
+
+      const coords = getCanvasNormalizedCoords(e, wmPreviewCanvasEl);
+
+      // Update Live Brush Size Cursor Ring on the canvas
+      cursorRing.classList.remove('hidden');
+      const nrActive = currentBinaryTool === 'eraser' ? ((binaryBrushSizePx / 2) / 460) : (binaryCircleRadiusPx / 460);
+      const diameterPx = Math.max(6, nrActive * 2 * rect.width);
+      cursorRing.style.width = diameterPx + 'px';
+      cursorRing.style.height = diameterPx + 'px';
+      cursorRing.style.left = (coords.nx * rect.width) + 'px';
+      cursorRing.style.top = (coords.ny * rect.height) + 'px';
+      cursorRing.style.borderColor = currentBinaryTool === 'eraser' ? '#0284c7' : '#e11d48';
+      cursorRing.style.backgroundColor = currentBinaryTool === 'eraser' ? 'rgba(255,255,255,0.65)' : 'rgba(225,29,72,0.08)';
+
+      if (!chk || !chk.checked) {
+        loupe.classList.add('hidden');
+        return;
+      }
+
+      loupe.classList.remove('hidden');
+
+      const pdfCanvas = document.getElementById('pdfPreviewCanvas');
+      const magCanvas = document.getElementById('magnifierCanvas');
+      const targetRing = document.getElementById('magnifierTargetRing');
+      const mCtx = magCanvas.getContext('2d');
+      const zoom = 4;
+      const srcW = magCanvas.width / zoom;
+      const srcH = magCanvas.height / zoom;
+      const srcX = coords.nx * pdfCanvas.width - srcW / 2;
+      const srcY = coords.ny * pdfCanvas.height - srcH / 2;
+
+      const ringSizeInLoupe = Math.max(8, nrActive * 2 * pdfCanvas.width * zoom);
+      targetRing.style.width = ringSizeInLoupe + 'px';
+      targetRing.style.height = ringSizeInLoupe + 'px';
+
+      mCtx.fillStyle = '#ffffff';
+      mCtx.fillRect(0, 0, magCanvas.width, magCanvas.height);
+      mCtx.drawImage(pdfCanvas, srcX, srcY, srcW, srcH, 0, 0, magCanvas.width, magCanvas.height);
+      mCtx.drawImage(wmPreviewCanvasEl, srcX, srcY, srcW, srcH, 0, 0, magCanvas.width, magCanvas.height);
+    }
+
+    // =========================================================================
+    // BINARY POSITIONS UI, MEMBER CODES & DETAILED GUIDE MODAL
+    // =========================================================================
+    function openBinaryGuideModal() {
+      document.getElementById('binaryGuideModal').classList.remove('hidden');
+    }
+
+    function closeBinaryGuideModal() {
+      document.getElementById('binaryGuideModal').classList.add('hidden');
+    }
+
+    function refreshBinaryPositionsUI() {
+      const sorted = getSortedBinaryPositions();
+      const k = sorted.length;
+      const maxComb = Math.pow(2, k);
+
+      document.getElementById('statNumPositions').innerText = k;
+      document.getElementById('statPagesUsed').innerText = `${k} trang khác nhau`;
+      document.getElementById('statFormula').innerText = `2^${k}`;
+      document.getElementById('statMaxCombinations').innerText = `${maxComb.toLocaleString('vi-VN')} phiên bản`;
+
+      const emptyEl = document.getElementById('binaryPositionsEmpty');
+      const tableWrap = document.getElementById('binaryPositionsTableWrapper');
+      const tbody = document.getElementById('binaryPositionsTbody');
+
+      if (k === 0) {
+        emptyEl.classList.remove('hidden');
+        tableWrap.classList.add('hidden');
+      } else {
+        emptyEl.classList.add('hidden');
+        tableWrap.classList.remove('hidden');
+
+        tbody.innerHTML = sorted.map((m, idx) => {
+          const bitNum = idx + 1;
+          const pctX = Math.round(m.redCircle.nx * 100);
+          const pctY = Math.round(m.redCircle.ny * 100);
+          return `<tr class="hover:bg-slate-50 transition-colors ${m.page === currentPreviewPage ? 'bg-rose-50/40' : ''}">
+            <td class="py-2 px-3 font-bold text-rose-700 font-mono-code">Vị trí #${bitNum}</td>
+            <td class="py-2 px-2.5">
+              <span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 font-bold text-[11px]">Trang ${m.page}</span>
+            </td>
+            <td class="py-2 px-2.5 text-[11px] text-slate-600">
+              <span class="inline-flex items-center gap-1 text-emerald-700 font-medium"><i class="ph-fill ph-check-circle"></i> Đã xóa trắng & Khoanh đỏ</span>
+              <span class="text-slate-400 font-mono-code">(${pctX}%, ${pctY}%)</span>
+            </td>
+            <td class="py-2 px-2.5">
+              <input type="text" value="${(m.note || '').replace(/"/g, '&quot;')}" oninput="updatePositionNote(${m.page}, this.value)" class="w-full p-1 text-[11px] rounded border border-slate-200 focus:border-rose-400 focus:outline-none" placeholder="Ghi chú dấu câu..." />
+            </td>
+            <td class="py-2 px-2.5 text-right whitespace-nowrap">
+              <button onclick="jumpToPreviewPage(${m.page})" class="text-blue-600 hover:underline font-semibold mr-2">Xem trang</button>
+              <button onclick="removePositionOnPage(${m.page})" class="text-slate-400 hover:text-rose-600" title="Xóa vị trí này"><i class="ph-bold ph-trash"></i></button>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+
+      regenerateMemberBinaryCodes(false);
+    }
+
+    function updatePositionNote(page, val) {
+      if (binaryMarksByPage[page]) {
+        binaryMarksByPage[page].note = val;
+      }
+    }
+
+    function removePositionOnPage(page) {
+      delete binaryMarksByPage[page];
+      refreshBinaryPositionsUI();
+      renderPagePillsBar();
+      updatePreview();
+      updateSummary();
+    }
+
     function getRecipients() {
       const text = document.getElementById('recipientListInput').value;
       return text.split('\n')
@@ -769,6 +1807,9 @@
     document.getElementById('recipientListInput').addEventListener('input', () => {
       const list = getRecipients();
       document.getElementById('recipientCountText').innerHTML = `Đã phát hiện: <strong>${list.length}</strong> người nhận`;
+      if (binaryFeatureEnabled) {
+        regenerateMemberBinaryCodes(false);
+      }
       updateSummary();
       updatePreview();
     });
@@ -783,6 +1824,10 @@
       ].join('\n');
       document.getElementById('recipientListInput').value = sample;
       document.getElementById('recipientCountText').innerHTML = `Đã phát hiện: <strong>5</strong> người nhận`;
+      if (binaryFeatureEnabled) {
+        document.getElementById('binaryAssignStrategy').value = 'sequential';
+        regenerateMemberBinaryCodes(true);
+      }
       updateSummary();
       updatePreview();
     }
@@ -790,7 +1835,132 @@
     function clearNamesInput() {
       document.getElementById('recipientListInput').value = '';
       document.getElementById('recipientCountText').innerHTML = `Đã phát hiện: <strong>0</strong> người nhận`;
+      memberBinaryAssignments = [];
+      if (binaryFeatureEnabled) {
+        renderMemberBinaryTable();
+      }
       updateSummary();
+      updatePreview();
+    }
+
+    function regenerateMemberBinaryCodes(forceRegen = false) {
+      const members = getRecipients();
+      const sortedPos = getSortedBinaryPositions();
+      const k = Math.max(1, sortedPos.length);
+      const maxComb = Math.pow(2, sortedPos.length);
+      const strategy = document.getElementById('binaryAssignStrategy').value;
+
+      const warnBox = document.getElementById('binaryCapacityWarning');
+      const warnText = document.getElementById('binaryCapacityWarningText');
+      if (sortedPos.length > 0 && members.length > maxComb) {
+        const neededBits = Math.ceil(Math.log2(members.length));
+        warnBox.classList.remove('hidden');
+        warnText.innerHTML = `Có <strong>${members.length}</strong> người nhận nhưng mới chọn <strong>${sortedPos.length}</strong> vị trí (tối đa 2^${sortedPos.length} = ${maxComb} bản). Hãy chọn ít nhất <strong>${neededBits} vị trí</strong> trên ${neededBits} trang khác nhau!`;
+      } else {
+        warnBox.classList.add('hidden');
+      }
+
+      let randomPool = [];
+      if (strategy === 'random' && k <= 16) {
+        const poolLimit = Math.min(Math.pow(2, k), Math.max(members.length * 3, 32));
+        for (let val = 1; val < Math.pow(2, k) && randomPool.length < poolLimit; val++) {
+          randomPool.push(val.toString(2).padStart(k, '0'));
+        }
+        if (randomPool.length < members.length && Math.pow(2, k) >= members.length) {
+          randomPool.unshift('0'.repeat(k));
+        }
+        for (let i = randomPool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [randomPool[i], randomPool[j]] = [randomPool[j], randomPool[i]];
+        }
+      }
+
+      const prevMap = {};
+      memberBinaryAssignments.forEach(item => { prevMap[item.name] = item.code; });
+
+      memberBinaryAssignments = members.map((name, idx) => {
+        if (!forceRegen && (strategy === 'custom' || prevMap[name])) {
+          let existingCode = prevMap[name];
+          if (existingCode) {
+            if (existingCode.length < k) existingCode = existingCode.padStart(k, '0');
+            else if (existingCode.length > k) existingCode = existingCode.slice(0, k);
+            return { name, code: existingCode };
+          }
+        }
+
+        if (strategy === 'random' && randomPool[idx]) {
+          return { name, code: randomPool[idx] };
+        }
+
+        const numVal = (idx + 1) % Math.max(2, Math.pow(2, k));
+        const code = numVal.toString(2).padStart(k, '0');
+        return { name, code };
+      });
+
+      renderMemberBinaryTable();
+    }
+
+    function describeErasedPositions(code, sortedPos) {
+      if (!sortedPos || sortedPos.length === 0) return '<span class="text-slate-400 italic">Chưa chọn vị trí trên PDF</span>';
+      const erased = [];
+      for (let i = 0; i < sortedPos.length; i++) {
+        if (code[i] === '1') {
+          erased.push(`Vị trí ${i + 1} (Tr.${sortedPos[i].page})`);
+        }
+      }
+      if (erased.length === 0) {
+        return '<span class="text-slate-500">Giữ nguyên tất cả ký tự (Không xóa)</span>';
+      }
+      return `<span class="text-rose-700 font-medium">Xóa ký tự tại: <strong>${erased.join(', ')}</strong></span>`;
+    }
+
+    function renderMemberBinaryTable() {
+      const tbody = document.getElementById('binaryMemberAssignmentTbody');
+      const sortedPos = getSortedBinaryPositions();
+
+      if (memberBinaryAssignments.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400 italic">Hãy nhập danh sách người nhận ở Bước 2 phía trên.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = memberBinaryAssignments.map((item, idx) => {
+        const desc = describeErasedPositions(item.code, sortedPos);
+        const isSelectedForPreview = (document.getElementById('binaryPreviewSimMode').value === 'member' && previewSimulatedMemberIdx === idx);
+        return `<tr class="hover:bg-slate-50 transition-colors ${isSelectedForPreview ? 'bg-indigo-50/70' : ''}">
+          <td class="py-2 px-2.5 font-mono text-slate-500">${idx + 1}</td>
+          <td class="py-2 px-2.5 font-bold text-slate-800">${item.name}</td>
+          <td class="py-2 px-2.5">
+            <input type="text" value="${item.code}" oninput="onManualMemberCodeEdit(${idx}, this.value)" class="w-24 px-2 py-1 rounded border border-slate-300 font-mono-code font-bold text-indigo-700 bg-indigo-50/40 focus:outline-none focus:border-indigo-600 text-xs tracking-wider" title="Chỉ nhập 0 và 1" />
+          </td>
+          <td class="py-2 px-2.5 text-[11px]">${desc}</td>
+          <td class="py-2 px-2.5 text-right whitespace-nowrap">
+            <button type="button" onclick="previewSpecificMember(${idx})" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold ${isSelectedForPreview ? 'bg-indigo-600 text-white' : 'bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700'} transition-colors">
+              <i class="ph-bold ph-eye"></i> Xem thử
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function onManualMemberCodeEdit(idx, rawVal) {
+      const cleaned = rawVal.replace(/[^01]/g, '');
+      if (memberBinaryAssignments[idx]) {
+        memberBinaryAssignments[idx].code = cleaned || '0';
+        document.getElementById('binaryAssignStrategy').value = 'custom';
+        renderMemberBinaryTable();
+        updatePreview();
+      }
+    }
+
+    function previewSpecificMember(idx) {
+      previewSimulatedMemberIdx = idx;
+      document.getElementById('binaryPreviewSimMode').value = 'member';
+      renderMemberBinaryTable();
+      updatePreview();
+    }
+
+    function onBinarySimModeChange() {
+      renderMemberBinaryTable();
       updatePreview();
     }
 
@@ -823,17 +1993,11 @@
       const removeAccents = document.getElementById('chkRemoveAccents').checked;
 
       let name = rawName || 'NGUYỄN VĂN AN';
-      if (removeAccents) {
-        name = removeVietnameseTones(name);
-      }
-      if (autoUpper) {
-        name = name.toUpperCase();
-      }
+      if (removeAccents) name = removeVietnameseTones(name);
+      if (autoUpper) name = name.toUpperCase();
 
       let text = template.replace(/\{name\}/g, name);
-      if (removeAccents) {
-        text = removeVietnameseTones(text);
-      }
+      if (removeAccents) text = removeVietnameseTones(text);
       return text;
     }
 
@@ -862,6 +2026,39 @@
       updatePreview();
     }
 
+    function updateLogoScale(val) {
+      config.logoScalePercent = parseInt(val);
+      document.getElementById('lblLogoScale').innerText = val + '% trang';
+      updatePreview();
+    }
+
+    function updateHeaderFontSize(val) {
+      config.headerFontSize = parseInt(val);
+      document.getElementById('lblHeaderFontSize').innerText = val + 'px';
+      updatePreview();
+    }
+
+    function handleCustomLogoUpload(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        alcLogoImage.src = ev.target.result;
+        document.getElementById('batchLogoPreviewImg').src = ev.target.result;
+        document.getElementById('btnRestoreDefaultLogo').classList.remove('hidden');
+        updatePreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function restoreDefaultAlcLogo() {
+      alcLogoImage.src = DEFAULT_ALC_LOGO_DATA_URI;
+      document.getElementById('batchLogoPreviewImg').src = DEFAULT_ALC_LOGO_DATA_URI;
+      document.getElementById('btnRestoreDefaultLogo').classList.add('hidden');
+      document.getElementById('customLogoFileInput').value = '';
+      updatePreview();
+    }
+
     function setColor(hex) {
       config.color = hex;
       document.getElementById('customColorPicker').value = hex;
@@ -875,7 +2072,6 @@
       updatePreview();
     }
 
-    // Check if current preview page is within selected range
     function isCurrentPageActive(pageNum) {
       const pageRange = document.getElementById('wmPageRange').value;
       const targetPage = pageNum || currentPreviewPage;
@@ -885,7 +2081,155 @@
       return true;
     }
 
-    // UNIFIED CANVAS WATERMARK DRAWING FUNCTION (Used for Preview & Anti-Copy Flattening)
+    function drawWhiteEraserOnCanvas(ctx, canvasWidth, canvasHeight, mark, isAdminPreview = false) {
+      if (!mark || !mark.strokes) return;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = '#ffffff';
+
+      for (const stroke of mark.strokes) {
+        const rPx = Math.max(2, stroke.nr * canvasWidth);
+        ctx.lineWidth = rPx * 2;
+        const pts = stroke.points;
+        if (!pts || pts.length === 0) continue;
+
+        if (pts.length === 1) {
+          ctx.beginPath();
+          ctx.arc(pts[0].nx * canvasWidth, pts[0].ny * canvasHeight, rPx, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(pts[0].nx * canvasWidth, pts[0].ny * canvasHeight);
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i].nx * canvasWidth, pts[i].ny * canvasHeight);
+          }
+          ctx.stroke();
+        }
+
+        if (isAdminPreview) {
+          ctx.save();
+          ctx.strokeStyle = 'rgba(2, 132, 199, 0.55)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.arc(pts[0].nx * canvasWidth, pts[0].ny * canvasHeight, rPx + 1, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawRedTrackingCircleOnCanvas(ctx, canvasWidth, canvasHeight, mark, bitIndex1Based) {
+      if (!mark || !mark.redCircle) return;
+      ctx.save();
+      const cx = mark.redCircle.nx * canvasWidth;
+      const cy = mark.redCircle.ny * canvasHeight;
+      const r = Math.max(10, mark.redCircle.nr * canvasWidth);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      const label = `Vị trí #${bitIndex1Based}`;
+      ctx.font = `bold ${Math.max(10, Math.round(canvasWidth * 0.022))}px "Inter", "Roboto", sans-serif`;
+      const textW = ctx.measureText(label).width;
+      const padX = 6;
+      const boxW = textW + padX * 2;
+      const boxH = Math.max(18, Math.round(canvasWidth * 0.036));
+      let boxX = cx - boxW / 2;
+      let boxY = cy - r - boxH - 4;
+      if (boxY < 4) boxY = cy + r + 4;
+      boxX = Math.max(4, Math.min(canvasWidth - boxW - 4, boxX));
+
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.roundRect(boxX, boxY, boxW, boxH, 4);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, boxX + boxW / 2, boxY + boxH / 2);
+
+      ctx.restore();
+    }
+
+    // Draw ALC Logo Watermark & Red Right Header ("CLB Học Tập Tích Cực ALC")
+    function drawAlcLogoAndHeaderOnCanvas(ctx, canvasWidth, canvasHeight, pdfPtWidth, layout, cfg) {
+      const refWidth = pdfPtWidth || 595;
+      const scaleFactor = canvasWidth / refWidth;
+
+      // 1. Draw ALC Logo Watermark
+      if (alcLogoImage && alcLogoImage.complete && alcLogoImage.naturalWidth > 0) {
+        ctx.save();
+        ctx.globalAlpha = cfg.opacity;
+        const rad = (-cfg.angle * Math.PI) / 180;
+        const logoW = canvasWidth * ((cfg.logoScalePercent || 52) / 100);
+        const aspect = alcLogoImage.naturalHeight / alcLogoImage.naturalWidth;
+        const logoH = logoW * aspect;
+
+        if (layout === 'grid') {
+          const gW = logoW * 0.55;
+          const gH = logoH * 0.55;
+          const cols = [canvasWidth * 0.28, canvasWidth * 0.72];
+          const rows = [canvasHeight * 0.24, canvasHeight * 0.52, canvasHeight * 0.80];
+          for (const gx of cols) {
+            for (const gy of rows) {
+              ctx.save();
+              ctx.translate(gx, gy);
+              ctx.rotate(rad);
+              ctx.drawImage(alcLogoImage, -gW / 2, -gH / 2, gW, gH);
+              ctx.restore();
+            }
+          }
+        } else if (layout === 'bottom') {
+          const bW = logoW * 0.45;
+          const bH = logoH * 0.45;
+          ctx.translate(canvasWidth / 2, canvasHeight - bH / 2 - 20 * scaleFactor);
+          ctx.rotate(rad);
+          ctx.drawImage(alcLogoImage, -bW / 2, -bH / 2, bW, bH);
+        } else {
+          // Default 'center' (or 'top'): centered logo stamp
+          ctx.translate(canvasWidth / 2, canvasHeight / 2);
+          ctx.rotate(rad);
+          ctx.drawImage(alcLogoImage, -logoW / 2, -logoH / 2, logoW, logoH);
+        }
+        ctx.restore();
+      }
+
+      // 2. Draw Red Right Header ("CLB Học Tập Tích Cực ALC") at Top-Right of page
+      const headerInputEl = document.getElementById('batchHeaderRightText');
+      let headerRightText = headerInputEl ? headerInputEl.value.trim() : 'CLB Học Tập Tích Cực ALC';
+      if (document.getElementById('chkRemoveAccents') && document.getElementById('chkRemoveAccents').checked) {
+        headerRightText = removeVietnameseTones(headerRightText);
+      }
+
+      if (headerRightText) {
+        ctx.save();
+        ctx.globalAlpha = 1.0;
+        ctx.fillStyle = '#dc2626'; // Red text color
+        const hFontSize = Math.max(9, (cfg.headerFontSize || 13) * scaleFactor);
+        ctx.font = `bold ${hFontSize}px "Roboto", "Inter", "Segoe UI", sans-serif`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        const rightMargin = 32 * scaleFactor;
+        const topMargin = 20 * scaleFactor;
+        ctx.fillText(headerRightText, canvasWidth - rightMargin, topMargin);
+        ctx.restore();
+      }
+    }
+
     function drawWatermarkOnCanvasContext(ctx, canvasWidth, canvasHeight, pdfPtWidth, mainText, subtext, layout, cfg) {
       ctx.save();
       ctx.fillStyle = cfg.color;
@@ -893,13 +2237,11 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // Scale font size proportionally to canvas vs original PDF point width (default A4 = 595.28 pt)
       const refWidth = pdfPtWidth || 595;
       const scaleFactor = canvasWidth / refWidth;
       const computedFontSize = Math.max(12, cfg.fontSize * scaleFactor);
       ctx.font = `bold ${computedFontSize}px "Roboto", "Inter", "Segoe UI", sans-serif`;
 
-      // Canvas rotation: In PDF, +angle tilts up-right (counter-clockwise). In Canvas, -angle tilts up-right.
       const rad = (-cfg.angle * Math.PI) / 180;
       const cx = canvasWidth / 2;
       const cy = canvasHeight / 2;
@@ -941,7 +2283,7 @@
       ctx.restore();
     }
 
-    // Live Watermark Preview on Canvas
+    // Live Watermark & Binary Preview on Canvas
     function updatePreview() {
       const wmCanvas = document.getElementById('watermarkPreviewCanvas');
       if (!wmCanvas || !previewViewport) return;
@@ -949,83 +2291,517 @@
       const ctx = wmCanvas.getContext('2d');
       ctx.clearRect(0, 0, wmCanvas.width, wmCanvas.height);
 
-      if (!isCurrentPageActive(currentPreviewPage)) {
-        return; // Watermark not applied on this page
+      const pageBitPill = document.getElementById('pageBitStatusPill');
+      const badgeTitle = document.getElementById('lblPreviewBadgeTitle');
+      const badgeName = document.getElementById('lblPreviewName');
+      const includeAlcInRecipient = document.getElementById('chkIncludeAlcInRecipientMode')?.checked;
+
+      if (binaryFeatureEnabled && currentMode === 'recipient') {
+        const sortedPos = getSortedBinaryPositions();
+        const posIndex = sortedPos.findIndex(m => m.page === currentPreviewPage);
+        const mark = binaryMarksByPage[currentPreviewPage];
+        const simMode = document.getElementById('binaryPreviewSimMode').value;
+
+        let activeMember = null;
+        if (simMode === 'member' && memberBinaryAssignments.length > 0) {
+          activeMember = memberBinaryAssignments[previewSimulatedMemberIdx] || memberBinaryAssignments[0];
+        }
+
+        if (posIndex >= 0 && mark) {
+          const bitNum = posIndex + 1;
+          if (simMode === 'admin') {
+            badgeTitle.innerText = 'Chế độ:';
+            badgeName.innerText = 'Quản trị (Bút trắng + Ô tròn đỏ)';
+            pageBitPill.className = 'bg-rose-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow';
+            pageBitPill.innerText = `Vị trí #${bitNum} (Trang ${currentPreviewPage}) - Đã khoanh đỏ`;
+            drawWhiteEraserOnCanvas(ctx, wmCanvas.width, wmCanvas.height, mark, true);
+            drawRedTrackingCircleOnCanvas(ctx, wmCanvas.width, wmCanvas.height, mark, bitNum);
+          } else if (simMode === 'bit1') {
+            badgeTitle.innerText = 'Mô phỏng:';
+            badgeName.innerText = 'Trạng thái 1 (Xóa ký tự)';
+            pageBitPill.className = 'bg-rose-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow';
+            pageBitPill.innerText = `Vị trí #${bitNum}: Bit = 1 (Đã xóa trắng ký tự)`;
+            drawWhiteEraserOnCanvas(ctx, wmCanvas.width, wmCanvas.height, mark, false);
+          } else if (simMode === 'bit0') {
+            badgeTitle.innerText = 'Mô phỏng:';
+            badgeName.innerText = 'Trạng thái 0 (Giữ nguyên)';
+            pageBitPill.className = 'bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow';
+            pageBitPill.innerText = `Vị trí #${bitNum}: Bit = 0 (Giữ nguyên ký tự gốc)`;
+          } else if (simMode === 'member' && activeMember) {
+            const bitVal = activeMember.code[posIndex] || '0';
+            badgeTitle.innerText = `${activeMember.name}:`;
+            badgeName.innerText = `Mã ${activeMember.code}`;
+            if (bitVal === '1') {
+              pageBitPill.className = 'bg-rose-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow';
+              pageBitPill.innerText = `Vị trí #${bitNum}: Bit = 1 (Xóa ký tự cho ${activeMember.name})`;
+              drawWhiteEraserOnCanvas(ctx, wmCanvas.width, wmCanvas.height, mark, false);
+            } else {
+              pageBitPill.className = 'bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow';
+              pageBitPill.innerText = `Vị trí #${bitNum}: Bit = 0 (Giữ nguyên cho ${activeMember.name})`;
+            }
+          }
+        } else {
+          badgeTitle.innerText = 'Chế độ:';
+          badgeName.innerText = activeMember ? `${activeMember.name} (${activeMember.code})` : 'Quản trị viên';
+          pageBitPill.className = 'bg-slate-600 text-white text-[10px] font-medium px-2.5 py-0.5 rounded-full shadow';
+          pageBitPill.innerText = `Trang ${currentPreviewPage}: Chưa chọn vị trí xóa`;
+        }
+
+        if (isCurrentPageActive(currentPreviewPage)) {
+          const layout = document.getElementById('wmLayout').value;
+          if (includeAlcInRecipient) {
+            drawAlcLogoAndHeaderOnCanvas(ctx, wmCanvas.width, wmCanvas.height, 595, layout, config);
+          }
+          if (config.enableTextWatermarkWhenBinary) {
+            const list = getRecipients();
+            const sampleName = activeMember ? activeMember.name : (list.length > 0 ? list[0] : 'NGUYỄN VĂN AN');
+            const mainText = formatWatermarkText(sampleName);
+            let subtext = document.getElementById('watermarkSubtext').value;
+            if (document.getElementById('chkRemoveAccents').checked) subtext = removeVietnameseTones(subtext);
+            drawWatermarkOnCanvasContext(ctx, wmCanvas.width, wmCanvas.height, 595, mainText, subtext, layout, config);
+          }
+        }
+        return;
+      }
+
+      pageBitPill.classList.add('hidden');
+      if (!isCurrentPageActive(currentPreviewPage)) return;
+
+      const layout = document.getElementById('wmLayout').value;
+
+      if (currentMode === 'batch') {
+        const headerTxt = document.getElementById('batchHeaderRightText')?.value || 'CLB Học Tập Tích Cực ALC';
+        badgeTitle.innerText = 'Đóng dấu:';
+        badgeName.innerText = `Logo ALC + Header "${headerTxt}"`;
+        drawAlcLogoAndHeaderOnCanvas(ctx, wmCanvas.width, wmCanvas.height, 595, layout, config);
+        return;
       }
 
       let sampleName = 'NGUYỄN VĂN AN';
-      if (currentMode === 'recipient') {
-        const list = getRecipients();
-        if (list.length > 0) sampleName = list[0];
-      } else {
-        sampleName = document.getElementById('batchWatermarkText').value || 'BẢN LƯU HÀNH NỘI BỘ';
-      }
+      const list = getRecipients();
+      if (list.length > 0) sampleName = list[0];
 
       const mainText = formatWatermarkText(sampleName);
       let subtext = document.getElementById('watermarkSubtext').value;
       if (document.getElementById('chkRemoveAccents').checked) {
         subtext = removeVietnameseTones(subtext);
       }
-      const layout = document.getElementById('wmLayout').value;
 
-      document.getElementById('lblPreviewName').innerText = mainText;
-
+      badgeTitle.innerText = 'Mẫu:';
+      badgeName.innerText = mainText;
+      if (includeAlcInRecipient) {
+        drawAlcLogoAndHeaderOnCanvas(ctx, wmCanvas.width, wmCanvas.height, 595, layout, config);
+      }
       drawWatermarkOnCanvasContext(ctx, wmCanvas.width, wmCanvas.height, 595, mainText, subtext, layout, config);
     }
 
     // Update Summary & Button State
     function updateSummary() {
       const btn = document.getElementById('btnProcessBatch');
+      const btnTracking = document.getElementById('btnExportTrackingOnly');
       const btnLabel = document.getElementById('btnProcessLabel');
       const summary = document.getElementById('summaryText');
 
       if (!originalPdfBytes || selectedFiles.length === 0) {
         btn.disabled = true;
+        if (btnTracking) btnTracking.disabled = true;
         summary.innerHTML = '<span class="text-amber-600 font-medium"><i class="ph-bold ph-warning"></i> Vui lòng tải file PDF lên để bắt đầu</span>';
         return;
       }
 
-      const antiCopySuffix = config.antiCopy ? ' (CHỐNG COPY)' : '';
-
       if (currentMode === 'recipient') {
         const recipients = getRecipients();
+
+        if (binaryFeatureEnabled) {
+          const sortedPos = getSortedBinaryPositions();
+          const k = sortedPos.length;
+
+          if (k === 0) {
+            btn.disabled = true;
+            btnTracking.disabled = true;
+            summary.innerHTML = '<span class="text-rose-600 font-semibold"><i class="ph-bold ph-hand-pointing"></i> Đã bật Mã hóa nhị phân: Hãy dùng Bút màu trắng chấm xóa ít nhất 1 dấu câu/ký tự trên trang PDF bên phải</span>';
+            return;
+          }
+
+          btnTracking.disabled = false;
+
+          if (recipients.length === 0) {
+            btn.disabled = true;
+            summary.innerHTML = `<span class="text-amber-600 font-medium"><i class="ph-bold ph-warning"></i> Đã chọn <strong>${k} vị trí</strong> (2^${k} = ${Math.pow(2, k)} bản). Vui lòng nhập danh sách người nhận ở Bước 2.</span>`;
+          } else {
+            btn.disabled = false;
+            btnLabel.innerText = `XUẤT ${recipients.length} PDF THÀNH VIÊN + 1 PDF TRUY VẾT (ZIP)`;
+            summary.innerHTML = `<span class="text-emerald-700 font-semibold"><i class="ph-bold ph-check-circle"></i> Sẵn sàng tạo <strong>${recipients.length}</strong> bản PDF mã hóa nhị phân (${k} vị trí &rarr; 2^${k} = ${Math.pow(2, k)} tổ hợp) + <strong>01 File PDF Truy Vết khoanh đỏ</strong>.</span>`;
+          }
+          return;
+        }
+
         if (recipients.length === 0) {
           btn.disabled = true;
           summary.innerHTML = '<span class="text-amber-600 font-medium"><i class="ph-bold ph-warning"></i> Vui lòng nhập danh sách ít nhất 1 người nhận</span>';
         } else {
           btn.disabled = false;
-          btnLabel.innerText = `XUẤT ${recipients.length} FILE PDF RIÊNG${antiCopySuffix} (NÉN ZIP)`;
-          summary.innerHTML = `<span class="text-emerald-600 font-medium"><i class="ph-bold ph-check"></i> Sẵn sàng tạo <strong>${recipients.length}</strong> file PDF cá nhân hóa${config.antiCopy ? ' (Đã khóa chọn chữ)' : ''}.</span>`;
+          btnLabel.innerText = `XUẤT ${recipients.length} FILE PDF RIÊNG (NÉN ZIP)`;
+          summary.innerHTML = `<span class="text-emerald-600 font-medium"><i class="ph-bold ph-check"></i> Sẵn sàng tạo <strong>${recipients.length}</strong> file PDF cá nhân hóa.</span>`;
         }
       } else {
         btn.disabled = false;
-        btnLabel.innerText = `ĐÓNG DẤU ${selectedFiles.length} FILE${antiCopySuffix} (NÉN ZIP)`;
-        summary.innerHTML = `<span class="text-emerald-600 font-medium"><i class="ph-bold ph-check"></i> Sẵn sàng đóng dấu <strong>${selectedFiles.length}</strong> file PDF hàng loạt${config.antiCopy ? ' (Đã khóa chọn chữ)' : ''}.</span>`;
+        btnLabel.innerText = `ĐÓNG DẤU LOGO ALC & HEADER CHO ${selectedFiles.length} FILE (ZIP)`;
+        summary.innerHTML = `<span class="text-emerald-600 font-medium"><i class="ph-bold ph-check"></i> Sẵn sàng đóng dấu <strong>Logo ALC</strong> &amp; Header đỏ <strong>"CLB Học Tập Tích Cực ALC"</strong> cho <strong>${selectedFiles.length}</strong> file PDF.</span>`;
       }
-    }
-
-    function hexToRgb01(hex) {
-      const bigint = parseInt(hex.replace('#', ''), 16);
-      return {
-        r: ((bigint >> 16) & 255) / 255,
-        g: ((bigint >> 8) & 255) / 255,
-        b: (bigint & 255) / 255
-      };
     }
 
     function sanitizeFilename(name) {
       return name.replace(/[/\\?%*:|"<>]/g, '_').trim();
     }
 
-    // Exact mathematical centering calculation for rotated text in PDF
-    function getRotatedStartPoint(cx, cy, textWidth, fontSize, angleDeg) {
-      const rad = (angleDeg * Math.PI) / 180;
-      const vx = (textWidth / 2) * Math.cos(rad) - (0.35 * fontSize) * Math.sin(rad);
-      const vy = (textWidth / 2) * Math.sin(rad) + (0.35 * fontSize) * Math.cos(rad);
-      return { x: cx - vx, y: cy - vy };
+    // =========================================================================
+    // MANDATORY 150 DPI FLATTEN RENDERER (RUNS SILENTLY FOR ALL MEMBER/BATCH PDFS)
+    // =========================================================================
+    async function renderProcessedPdf150Dpi({ sourcePdfBytes, recipientName, binaryCode, sortedPositions, subtext, layout, pageRange, applyTextWatermark, applyAlcLogoAndHeader, onPageProgress }) {
+      const { PDFDocument } = PDFLib;
+
+      const loadingTask = pdfjsLib.getDocument({ data: sourcePdfBytes.slice() });
+      const pdfJsDoc = await loadingTask.promise;
+      const numPages = pdfJsDoc.numPages;
+
+      const outDoc = await PDFDocument.create();
+
+      let mainText = recipientName ? formatWatermarkText(recipientName) : '';
+      let sub = subtext ? subtext : '';
+      if (document.getElementById('chkRemoveAccents').checked) {
+        mainText = removeVietnameseTones(mainText);
+        sub = removeVietnameseTones(sub);
+      }
+
+      // Map pageNumber -> { mark, bitVal } if binary feature is enabled
+      const pageErasureMap = {};
+      if (binaryFeatureEnabled && sortedPositions && binaryCode) {
+        sortedPositions.forEach((pos, idx) => {
+          pageErasureMap[pos.page] = { mark: pos, bitVal: binaryCode[idx] || '0' };
+        });
+      }
+
+      for (let p = 1; p <= numPages; p++) {
+        if (onPageProgress) onPageProgress(p, numPages);
+
+        const page = await pdfJsDoc.getPage(p);
+        const unscaledViewport = page.getViewport({ scale: 1 });
+        // 150 DPI mandatory flatten (72 pt * 2.083 = 150 DPI; 1.85x-2.0x gives crisp 150 DPI)
+        const renderScale = 150 / 72;
+        const viewport = page.getViewport({ scale: renderScale });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Render original PDF page content onto canvas
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        // 2. Apply binary white erasure if bit === '1' on this page
+        const erasureInfo = pageErasureMap[p];
+        if (erasureInfo && erasureInfo.bitVal === '1') {
+          drawWhiteEraserOnCanvas(ctx, canvas.width, canvas.height, erasureInfo.mark, false);
+        }
+
+        // 3. Draw ALC Logo & Red Right Header and/or Text Watermark onto canvas if page is in range
+        const shouldWatermark = (pageRange === 'all') || (pageRange === 'first' && p === 1) || (pageRange === 'from2' && p >= 2);
+        if (shouldWatermark) {
+          if (applyAlcLogoAndHeader) {
+            drawAlcLogoAndHeaderOnCanvas(ctx, canvas.width, canvas.height, unscaledViewport.width, layout, config);
+          }
+          if (applyTextWatermark && mainText) {
+            drawWatermarkOnCanvasContext(ctx, canvas.width, canvas.height, unscaledViewport.width, mainText, sub, layout, config);
+          }
+        }
+
+        // 4. Capture 150 DPI image and embed into output PDF
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.90));
+        const imgBuffer = await blob.arrayBuffer();
+
+        const jpgImage = await outDoc.embedJpg(imgBuffer);
+        const newPage = outDoc.addPage([unscaledViewport.width, unscaledViewport.height]);
+        newPage.drawImage(jpgImage, {
+          x: 0,
+          y: 0,
+          width: unscaledViewport.width,
+          height: unscaledViewport.height
+        });
+
+        canvas.width = 0;
+        canvas.height = 0;
+        await new Promise(r => setTimeout(r, 8));
+      }
+
+      return await outDoc.save();
     }
 
-    // CORE: BATCH PROCESSING WITH PDF-LIB & JSZIP
+    // =========================================================================
+    // GENERATE THE MASTER TRACKING PDF (KHOANH ĐỎ CÁC VỊ TRÍ + BẢNG MÃ NHỊ PHÂN)
+    // =========================================================================
+    async function generateBinaryTrackingMasterPdf({ sourcePdfBytes, sortedPositions, memberAssignments, sourceFilename }) {
+      const { PDFDocument } = PDFLib;
+      const outDoc = await PDFDocument.create();
+
+      // PART 1: Summary & Binary Code Lookup Table Pages (150 DPI Canvas)
+      const k = sortedPositions.length;
+      const maxComb = Math.pow(2, k);
+      const members = memberAssignments || [];
+      const rowsPerPage = 18;
+      const totalSummaryPages = Math.max(1, Math.ceil(Math.max(1, members.length) / rowsPerPage));
+
+      for (let sp = 0; sp < totalSummaryPages; sp++) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1240; // 150 DPI A4 width
+        canvas.height = 1754; // 150 DPI A4 height
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, 150);
+        ctx.fillStyle = '#e11d48';
+        ctx.fillRect(0, 144, canvas.width, 6);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 34px "Inter", "Roboto", "Segoe UI", sans-serif';
+        ctx.fillText('HỒ SƠ TRUY VẾT & BẢNG MÃ NHỊ PHÂN BẢO MẬT TÀI LIỆU', 60, 68);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '500 20px "Inter", "Roboto", "Segoe UI", sans-serif';
+        const nowStr = new Date().toLocaleString('vi-VN');
+        ctx.fillText(`Tài liệu gốc: ${sourceFilename || 'Document.pdf'}   |   Ngày tạo: ${nowStr}   |   Trang tổng hợp ${sp + 1}/${totalSummaryPages}`, 60, 112);
+
+        let curY = 195;
+
+        if (sp === 0) {
+          ctx.fillStyle = '#fff1f2';
+          ctx.strokeStyle = '#fecdd3';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(60, curY, 1120, 115, 14);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#be123c';
+          ctx.font = 'bold 22px "Inter", "Roboto", sans-serif';
+          ctx.fillText(`CƠ CHẾ MÃ HÓA NHỊ PHÂN: ${k} VỊ TRÍ (TRÊN ${k} TRANG) → TỐI ĐA 2^${k} = ${maxComb.toLocaleString('vi-VN')} PHIÊN BẢN`, 85, curY + 38);
+
+          ctx.fillStyle = '#334155';
+          ctx.font = '500 19px "Inter", "Roboto", sans-serif';
+          ctx.fillText('• Trạng thái 0: Giữ nguyên ký tự / dấu câu gốc.     • Trạng thái 1: Xóa ký tự / dấu câu bằng bút màu trắng.', 85, curY + 72);
+          ctx.fillText('• Lưu ý chống đảo trang: Mỗi trang chỉ xóa tối đa 01 dấu câu. Các trang đính kèm phía sau đã được KHOANH TRÒN ĐỎ.', 85, curY + 100);
+
+          curY += 145;
+
+          ctx.fillStyle = '#0f172a';
+          ctx.font = 'bold 22px "Inter", "Roboto", sans-serif';
+          ctx.fillText('1. DANH SÁCH CÁC VỊ TRÍ ĐÁNH DẤU (ĐÃ ĐƯỢC KHOANH ĐỎ Ở CÁC TRANG SAU):', 60, curY);
+          curY += 18;
+
+          const posBoxH = Math.min(260, 48 + sortedPositions.length * 36);
+          ctx.fillStyle = '#f8fafc';
+          ctx.strokeStyle = '#cbd5e1';
+          ctx.beginPath();
+          ctx.roundRect(60, curY, 1120, posBoxH, 10);
+          ctx.fill();
+          ctx.stroke();
+
+          let py = curY + 34;
+          const maxPosShow = Math.min(sortedPositions.length, 6);
+          for (let i = 0; i < maxPosShow; i++) {
+            const pos = sortedPositions[i];
+            const pxPct = Math.round(pos.redCircle.nx * 100);
+            const pyPct = Math.round(pos.redCircle.ny * 100);
+            ctx.fillStyle = '#e11d48';
+            ctx.font = 'bold 19px "JetBrains Mono", monospace';
+            ctx.fillText(`• Vị trí #${i + 1} (Bit ${i + 1}):`, 85, py);
+
+            ctx.fillStyle = '#1e293b';
+            ctx.font = 'bold 19px "Inter", "Roboto", sans-serif';
+            ctx.fillText(`Trang ${pos.page}`, 310, py);
+
+            ctx.fillStyle = '#475569';
+            ctx.font = '500 18px "Inter", "Roboto", sans-serif';
+            ctx.fillText(`Tọa độ khoanh đỏ: (${pxPct}%, ${pyPct}%)  —  ${pos.note || ''}`, 430, py);
+            py += 34;
+          }
+          if (sortedPositions.length > maxPosShow) {
+            ctx.fillStyle = '#64748b';
+            ctx.font = 'italic 17px "Inter", sans-serif';
+            ctx.fillText(`... và ${sortedPositions.length - maxPosShow} vị trí khác (xem chi tiết khoanh đỏ ở các trang bên dưới).`, 85, py);
+          }
+
+          curY += posBoxH + 38;
+        }
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 22px "Inter", "Roboto", sans-serif';
+        ctx.fillText('2. BẢNG PHÂN PHỐI MÃ NHỊ PHÂN CỦA TỪNG THÀNH VIÊN:', 60, curY);
+        curY += 20;
+
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(60, curY, 1120, 48);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px "Inter", "Roboto", sans-serif';
+        ctx.fillText('STT', 80, curY + 30);
+        ctx.fillText('TÊN THÀNH VIÊN / NGƯỜI NHẬN', 150, curY + 30);
+        ctx.fillText('MÃ NHỊ PHÂN', 510, curY + 30);
+        ctx.fillText('CÁC VỊ TRÍ KÝ TỰ BỊ XÓA (TRẠNG THÁI = 1)', 710, curY + 30);
+        curY += 48;
+
+        const sliceStart = sp * rowsPerPage;
+        const sliceEnd = Math.min(members.length, sliceStart + rowsPerPage);
+
+        if (members.length === 0) {
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(60, curY, 1120, 56);
+          ctx.fillStyle = '#64748b';
+          ctx.font = 'italic 18px "Inter", sans-serif';
+          ctx.fillText('Chưa nhập danh sách thành viên (Chỉ lưu vị trí khoanh đỏ trên tài liệu).', 80, curY + 35);
+          curY += 56;
+        } else {
+          for (let mIdx = sliceStart; mIdx < sliceEnd; mIdx++) {
+            const m = members[mIdx];
+            const rowH = 50;
+            ctx.fillStyle = (mIdx % 2 === 0) ? '#ffffff' : '#f8fafc';
+            ctx.fillRect(60, curY, 1120, rowH);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(60, curY, 1120, rowH);
+
+            ctx.fillStyle = '#475569';
+            ctx.font = 'bold 18px "JetBrains Mono", monospace';
+            ctx.fillText(String(mIdx + 1).padStart(2, '0'), 80, curY + 32);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 19px "Inter", "Roboto", sans-serif';
+            ctx.fillText(m.name.slice(0, 28), 150, curY + 32);
+
+            ctx.fillStyle = '#e0e7ff';
+            ctx.beginPath();
+            ctx.roundRect(505, curY + 10, Math.max(110, m.code.length * 16 + 24), 30, 6);
+            ctx.fill();
+            ctx.fillStyle = '#3730a3';
+            ctx.font = 'bold 20px "JetBrains Mono", monospace';
+            ctx.fillText(m.code, 518, curY + 32);
+
+            const erasedList = [];
+            for (let b = 0; b < sortedPositions.length; b++) {
+              if (m.code[b] === '1') {
+                erasedList.push(`Vị trí ${b + 1} (Tr.${sortedPositions[b].page})`);
+              }
+            }
+            const erasedStr = erasedList.length > 0
+              ? `Xóa: ${erasedList.join(', ')}`
+              : 'Giữ nguyên toàn bộ (Không xóa)';
+
+            ctx.fillStyle = erasedList.length > 0 ? '#be123c' : '#64748b';
+            ctx.font = '500 18px "Inter", "Roboto", sans-serif';
+            ctx.fillText(erasedStr.slice(0, 50), 710, curY + 32);
+
+            curY += rowH;
+          }
+        }
+
+        ctx.fillStyle = '#64748b';
+        ctx.font = '500 16px "Inter", "Roboto", sans-serif';
+        ctx.fillText('TÀI LIỆU MẬT DÀNH RIÊNG CHO QUẢN TRỊ VIÊN — DÙNG ĐỂ ĐỐI CHIẾU & TRUY VẾT KHI PHÁT HIỆN RÒ RỈ', 60, 1700);
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+        const imgBuf = await blob.arrayBuffer();
+        const summaryImg = await outDoc.embedJpg(imgBuf);
+        const sPage = outDoc.addPage([595, 842]);
+        sPage.drawImage(summaryImg, { x: 0, y: 0, width: 595, height: 842 });
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+
+      // PART 2: Render all document pages at 150 DPI with RED TRACKING CIRCLES + BIT LABELS
+      const loadingTask = pdfjsLib.getDocument({ data: sourcePdfBytes.slice() });
+      const pdfJsDoc = await loadingTask.promise;
+      const numPages = pdfJsDoc.numPages;
+
+      const pageToBitInfo = {};
+      sortedPositions.forEach((pos, idx) => {
+        pageToBitInfo[pos.page] = { pos, bitNum: idx + 1 };
+      });
+
+      for (let p = 1; p <= numPages; p++) {
+        const page = await pdfJsDoc.getPage(p);
+        const unscaledViewport = page.getViewport({ scale: 1 });
+        const renderScale = 150 / 72; // 150 DPI
+        const viewport = page.getViewport({ scale: renderScale });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const info = pageToBitInfo[p];
+        if (info) {
+          drawRedTrackingCircleOnCanvas(ctx, canvas.width, canvas.height, info.pos, info.bitNum);
+        }
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.90));
+        const imgBuf = await blob.arrayBuffer();
+        const pageImg = await outDoc.embedJpg(imgBuf);
+        const outPage = outDoc.addPage([unscaledViewport.width, unscaledViewport.height]);
+        outPage.drawImage(pageImg, { x: 0, y: 0, width: unscaledViewport.width, height: unscaledViewport.height });
+
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+
+      return await outDoc.save();
+    }
+
+    // Standalone button to immediately export & download the Tracking PDF
+    async function exportTrackingPdfStandalone() {
+      if (!originalPdfBytes) return;
+      const sortedPos = getSortedBinaryPositions();
+      if (sortedPos.length === 0) {
+        alert('Vui lòng chọn ít nhất 1 vị trí trên PDF trước khi xuất file Truy vết.');
+        return;
+      }
+
+      const btn = document.getElementById('btnExportTrackingOnly');
+      const oldHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Đang tạo PDF Truy vết...`;
+
+      try {
+        const baseName = selectedFiles[0] ? selectedFiles[0].name.replace(/\.pdf$/i, '') : 'TaiLieu';
+        const trackingBytes = await generateBinaryTrackingMasterPdf({
+          sourcePdfBytes: originalPdfBytes,
+          sortedPositions: sortedPos,
+          memberAssignments: memberBinaryAssignments,
+          sourceFilename: selectedFiles[0] ? selectedFiles[0].name : 'Document.pdf'
+        });
+
+        const blob = new Blob([trackingBytes], { type: 'application/pdf' });
+        lastGeneratedTrackingPdfBlob = blob;
+        saveAs(blob, `00_HO_SO_TRUY_VET_KHOANH_DO_${sanitizeFilename(baseName)}.pdf`);
+      } catch (err) {
+        console.error(err);
+        alert('Lỗi khi tạo PDF truy vết: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+      }
+    }
+
+    // CORE: BATCH PROCESSING (ALWAYS USES MANDATORY 150 DPI FLATTEN SILENTLY)
     async function startBatchProcessing() {
       if (!originalPdfBytes) return;
 
@@ -1043,14 +2819,101 @@
       progressSection.classList.remove('hidden');
 
       const zip = new JSZip();
-      const rgb = hexToRgb01(config.color);
       const layout = document.getElementById('wmLayout').value;
       const pageRange = document.getElementById('wmPageRange').value;
       const subtext = document.getElementById('watermarkSubtext').value;
 
       try {
-        let tasks = [];
+        const includeAlcInRec = Boolean(document.getElementById('chkIncludeAlcInRecipientMode')?.checked);
 
+        if (currentMode === 'recipient' && binaryFeatureEnabled) {
+          const sortedPos = getSortedBinaryPositions();
+          const k = sortedPos.length;
+          const baseName = selectedFiles[0].name.replace(/\.pdf$/i, '');
+          const includeCodeInName = document.getElementById('chkIncludeCodeInFilename').checked;
+          const total = memberBinaryAssignments.length;
+
+          for (let i = 0; i < total; i++) {
+            const member = memberBinaryAssignments[i];
+            const pct = Math.round((i / (total + 1)) * 100);
+            progressBarFill.style.width = pct + '%';
+            progressPercent.innerText = pct + '%';
+            progressStatus.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Đang xử lý (${i + 1}/${total}): ${member.name} [${member.code}]...`;
+
+            const codeSuffix = includeCodeInName ? `_${member.code}` : '';
+            const outFileName = `${baseName}_${sanitizeFilename(member.name)}${codeSuffix}.pdf`;
+            progressDetail.innerText = outFileName;
+
+            const memberPdfBytes = await renderProcessedPdf150Dpi({
+              sourcePdfBytes: originalPdfBytes,
+              recipientName: member.name,
+              binaryCode: member.code,
+              sortedPositions: sortedPos,
+              subtext: subtext,
+              layout: layout,
+              pageRange: pageRange,
+              applyTextWatermark: config.enableTextWatermarkWhenBinary,
+              applyAlcLogoAndHeader: includeAlcInRec,
+              onPageProgress: (pageIdx, totalP) => {
+                progressDetail.innerText = `${outFileName} (Trang ${pageIdx}/${totalP})`;
+              }
+            });
+
+            zip.file(outFileName, memberPdfBytes);
+            await new Promise(r => setTimeout(r, 15));
+          }
+
+          progressStatus.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Đang tạo File PDF Lưu Thông Tin Truy Vết (Khoanh đỏ & Bảng mã)...`;
+          progressBarFill.style.width = '90%';
+          progressPercent.innerText = '90%';
+
+          const trackingFilename = `00_HO_SO_TRUY_VET_KHOANH_DO_${sanitizeFilename(baseName)}.pdf`;
+          const trackingPdfBytes = await generateBinaryTrackingMasterPdf({
+            sourcePdfBytes: originalPdfBytes,
+            sortedPositions: sortedPos,
+            memberAssignments: memberBinaryAssignments,
+            sourceFilename: selectedFiles[0].name
+          });
+
+          zip.file(trackingFilename, trackingPdfBytes);
+          lastGeneratedTrackingPdfBlob = new Blob([trackingPdfBytes], { type: 'application/pdf' });
+
+          progressStatus.innerHTML = `<i class="ph-bold ph-archive text-blue-600"></i> Đang đóng gói ZIP...`;
+          progressBarFill.style.width = '96%';
+          progressPercent.innerText = '96%';
+
+          const zipBlob = await zip.generateAsync({
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+          });
+          lastGeneratedZipBlob = zipBlob;
+
+          const zipFilename = `TaiLieu_MaHoaNhiPhan_${total}ThanhVien_${new Date().toISOString().slice(0, 10)}.zip`;
+          saveAs(zipBlob, zipFilename);
+
+          progressBarFill.style.width = '100%';
+          progressPercent.innerText = '100%';
+          progressSection.classList.add('hidden');
+          successBox.classList.remove('hidden');
+          btnProcess.disabled = false;
+
+          successDetail.innerHTML = `Đã xuất <strong>${total} file PDF thành viên</strong> (mã hóa ${k} vị trí &rarr; 2<sup>${k}</sup> = ${Math.pow(2, k)} tổ hợp) kèm theo <strong>01 file PDF Truy Vết (<code>${trackingFilename}</code>)</strong> đã khoanh tròn đỏ các vị trí xóa và lưu bảng mã nhị phân của từng người.`;
+
+          document.getElementById('btnReDownloadZip').onclick = () => {
+            if (lastGeneratedZipBlob) saveAs(lastGeneratedZipBlob, zipFilename);
+          };
+          const btnReTrack = document.getElementById('btnReDownloadTrackingPdf');
+          btnReTrack.classList.remove('hidden');
+          btnReTrack.onclick = () => {
+            if (lastGeneratedTrackingPdfBlob) saveAs(lastGeneratedTrackingPdfBlob, trackingFilename);
+          };
+          return;
+        }
+
+        // Standard Recipient or Batch ALC Logo & Red Header Mode (Also mandatory 150 DPI flatten under the hood)
+        let tasks = [];
+        const isBatchLogoMode = (currentMode === 'batch');
         if (currentMode === 'recipient') {
           const recipients = getRecipients();
           const baseName = selectedFiles[0].name.replace(/\.pdf$/i, '');
@@ -1060,62 +2923,43 @@
             outputFilename: `${baseName}_${sanitizeFilename(recipientName)}.pdf`
           }));
         } else {
-          const fixedText = document.getElementById('batchWatermarkText').value || 'BẢN LƯU HÀNH NỘI BỘ';
           for (let f of selectedFiles) {
             const bytes = new Uint8Array(await f.arrayBuffer());
             const baseName = f.name.replace(/\.pdf$/i, '');
             tasks.push({
-              name: fixedText,
+              name: '',
               pdfBytes: bytes,
-              outputFilename: `${baseName}_watermarked.pdf`
+              outputFilename: `${baseName}_ALC.pdf`
             });
           }
         }
 
         const total = tasks.length;
-        let completed = 0;
-
         for (let i = 0; i < total; i++) {
           const task = tasks[i];
-          const pct = Math.round(((i) / total) * 100);
+          const pct = Math.round((i / total) * 100);
           progressBarFill.style.width = pct + '%';
           progressPercent.innerText = pct + '%';
-          progressStatus.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Đang xử lý (${i + 1}/${total}): ${config.antiCopy ? 'Khóa chọn text & Đóng dấu' : 'Đóng dấu vector'}...`;
+          progressStatus.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Đang xử lý (${i + 1}/${total})...`;
           progressDetail.innerText = task.outputFilename;
 
-          let modifiedBytes;
-
-          if (config.antiCopy) {
-            // Anti-Copy Flatten Mode: Render to HD raster canvas, baking watermark directly into pixels
-            modifiedBytes = await applyWatermarkFlattenAntiCopy({
-              sourcePdfBytes: task.pdfBytes,
-              recipientName: task.name,
-              subtext: subtext,
-              layout: layout,
-              pageRange: pageRange,
-              taskIndex: i + 1,
-              totalTasks: total,
-              onPageProgress: (pageIdx, totalP) => {
-                progressDetail.innerText = `${task.outputFilename} (Khóa text trang ${pageIdx}/${totalP})`;
-              }
-            });
-          } else {
-            // Standard Vector Mode
-            modifiedBytes = await applyWatermarkVectorPdf({
-              sourcePdfBytes: task.pdfBytes,
-              recipientName: task.name,
-              subtext: subtext,
-              layout: layout,
-              pageRange: pageRange,
-              colorRgb: rgb
-            });
-          }
+          const modifiedBytes = await renderProcessedPdf150Dpi({
+            sourcePdfBytes: task.pdfBytes,
+            recipientName: task.name,
+            binaryCode: null,
+            sortedPositions: null,
+            subtext: subtext,
+            layout: layout,
+            pageRange: pageRange,
+            applyTextWatermark: !isBatchLogoMode,
+            applyAlcLogoAndHeader: isBatchLogoMode || includeAlcInRec,
+            onPageProgress: (pageIdx, totalP) => {
+              progressDetail.innerText = `${task.outputFilename} (Trang ${pageIdx}/${totalP})`;
+            }
+          });
 
           zip.file(task.outputFilename, modifiedBytes);
-          completed++;
-          
-          // Yield to browser UI thread
-          await new Promise(r => setTimeout(r, 20));
+          await new Promise(r => setTimeout(r, 15));
         }
 
         progressStatus.innerHTML = `<i class="ph-bold ph-archive text-blue-600"></i> Đang nén file ZIP...`;
@@ -1129,28 +2973,20 @@
         });
 
         lastGeneratedZipBlob = zipBlob;
-
-        // Auto Download
-        const zipFilename = `Watermarked_Documents_${config.antiCopy ? 'AntiCopy_' : ''}${new Date().toISOString().slice(0, 10)}.zip`;
+        const zipFilename = `Watermarked_Documents_${new Date().toISOString().slice(0, 10)}.zip`;
         saveAs(zipBlob, zipFilename);
 
-        // Update UI
         progressBarFill.style.width = '100%';
         progressPercent.innerText = '100%';
         progressSection.classList.add('hidden');
         successBox.classList.remove('hidden');
         btnProcess.disabled = false;
+        document.getElementById('btnReDownloadTrackingPdf').classList.add('hidden');
 
-        if (config.antiCopy) {
-          successDetail.innerHTML = '<span class="text-amber-800 font-semibold"><i class="ph-bold ph-lock-key"></i> Đã kích hoạt Chống Copy:</span> Văn bản đã được khóa bôi đen chọn chữ 100%, watermark được hòa trộn chống xóa hoàn toàn.';
-        } else {
-          successDetail.innerText = 'Tất cả file PDF đã được đóng dấu với chất lượng vector nguyên bản 100%.';
-        }
+        successDetail.innerText = 'Tất cả các file PDF đã được đóng dấu và xử lý hoàn tất.';
 
         document.getElementById('btnReDownloadZip').onclick = () => {
-          if (lastGeneratedZipBlob) {
-            saveAs(lastGeneratedZipBlob, zipFilename);
-          }
+          if (lastGeneratedZipBlob) saveAs(lastGeneratedZipBlob, zipFilename);
         };
 
       } catch (err) {
@@ -1159,226 +2995,6 @@
         btnProcess.disabled = false;
         progressSection.classList.add('hidden');
       }
-    }
-
-    // ANTI-COPY FLATTEN TO HD IMAGE (100% UNSELECTABLE & TAMPER-PROOF)
-    async function applyWatermarkFlattenAntiCopy({ sourcePdfBytes, recipientName, subtext, layout, pageRange, onPageProgress }) {
-      const { PDFDocument } = PDFLib;
-
-      const loadingTask = pdfjsLib.getDocument({ data: sourcePdfBytes.slice() });
-      const pdfJsDoc = await loadingTask.promise;
-      const numPages = pdfJsDoc.numPages;
-
-      const outDoc = await PDFDocument.create();
-
-      let mainText = formatWatermarkText(recipientName);
-      let sub = subtext ? subtext : '';
-      if (document.getElementById('chkRemoveAccents').checked) {
-        mainText = removeVietnameseTones(mainText);
-        sub = removeVietnameseTones(sub);
-      }
-
-      for (let p = 1; p <= numPages; p++) {
-        if (onPageProgress) onPageProgress(p, numPages);
-
-        const page = await pdfJsDoc.getPage(p);
-        const unscaledViewport = page.getViewport({ scale: 1 });
-        // Scale 1.75 = ~130-150 DPI (Sharp HD for reading and printing, fast rendering, balanced memory)
-        const renderScale = 1.75;
-        const viewport = page.getViewport({ scale: renderScale });
-
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(viewport.width);
-        canvas.height = Math.round(viewport.height);
-        const ctx = canvas.getContext('2d');
-
-        // Solid white background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // 1. Render PDF page content onto canvas
-        await page.render({ canvasContext: ctx, viewport }).promise;
-
-        // 2. Draw watermark directly onto canvas if page is in range
-        const shouldWatermark = (pageRange === 'all') || (pageRange === 'first' && p === 1) || (pageRange === 'from2' && p >= 2);
-        if (shouldWatermark) {
-          drawWatermarkOnCanvasContext(ctx, canvas.width, canvas.height, unscaledViewport.width, mainText, sub, layout, config);
-        }
-
-        // 3. Export to JPEG blob (88% quality is indistinguishable from lossless for text, highly compressed)
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
-        const imgBuffer = await blob.arrayBuffer();
-
-        // 4. Embed into PDF-Lib document
-        const jpgImage = await outDoc.embedJpg(imgBuffer);
-        const newPage = outDoc.addPage([unscaledViewport.width, unscaledViewport.height]);
-        newPage.drawImage(jpgImage, {
-          x: 0,
-          y: 0,
-          width: unscaledViewport.width,
-          height: unscaledViewport.height
-        });
-
-        // Release canvas memory immediately
-        canvas.width = 0;
-        canvas.height = 0;
-
-        // Yield to browser UI
-        await new Promise(r => setTimeout(r, 10));
-      }
-
-      return await outDoc.save();
-    }
-
-    // STANDARD VECTOR WATERMARK (Preserves original text layer & vector lightness)
-    async function applyWatermarkVectorPdf({ sourcePdfBytes, recipientName, subtext, layout, pageRange, colorRgb }) {
-      const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
-
-      const pdfDoc = await PDFDocument.load(sourcePdfBytes, { ignoreEncryption: true });
-
-      let fontToUse;
-      let isFallback = false;
-
-      if (customFontBytes && !document.getElementById('chkRemoveAccents').checked) {
-        try {
-          pdfDoc.registerFontkit(fontkit);
-          fontToUse = await pdfDoc.embedFont(customFontBytes);
-        } catch (fontErr) {
-          console.warn('Cannot embed custom font, falling back to Helvetica:', fontErr);
-          isFallback = true;
-          fontToUse = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        }
-      } else {
-        isFallback = true;
-        fontToUse = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      }
-
-      let mainText = formatWatermarkText(recipientName);
-      let sub = subtext ? subtext : '';
-
-      if (isFallback || document.getElementById('chkRemoveAccents').checked) {
-        mainText = removeVietnameseTones(mainText);
-        sub = removeVietnameseTones(sub);
-      }
-
-      const pages = pdfDoc.getPages();
-      const pagesToProcess = [];
-
-      if (pageRange === 'all') {
-        pagesToProcess.push(...pages);
-      } else if (pageRange === 'first') {
-        if (pages.length > 0) pagesToProcess.push(pages[0]);
-      } else if (pageRange === 'from2') {
-        for (let i = 1; i < pages.length; i++) {
-          pagesToProcess.push(pages[i]);
-        }
-      }
-
-      const fontSize = config.fontSize;
-      const opacity = config.opacity;
-      const angleDeg = config.angle;
-      const rad = (angleDeg * Math.PI) / 180;
-      const color = rgb(colorRgb.r, colorRgb.g, colorRgb.b);
-
-      for (let page of pagesToProcess) {
-        const { width, height } = page.getSize();
-        const textWidth = fontToUse.widthOfTextAtSize(mainText, fontSize);
-
-        if (layout === 'center') {
-          const cx = width / 2;
-          const cy = height / 2;
-          const startPt = getRotatedStartPoint(cx, cy, textWidth, fontSize, angleDeg);
-
-          page.drawText(mainText, {
-            x: startPt.x,
-            y: startPt.y,
-            size: fontSize,
-            font: fontToUse,
-            color: color,
-            opacity: opacity,
-            rotate: degrees(angleDeg)
-          });
-
-          if (sub) {
-            const subSize = fontSize * 0.45;
-            const subWidth = fontToUse.widthOfTextAtSize(sub, subSize);
-            const dist = fontSize * 0.8;
-            const subCx = cx + dist * Math.sin(rad);
-            const subCy = cy - dist * Math.cos(rad);
-            const subStartPt = getRotatedStartPoint(subCx, subCy, subWidth, subSize, angleDeg);
-
-            page.drawText(sub, {
-              x: subStartPt.x,
-              y: subStartPt.y,
-              size: subSize,
-              font: fontToUse,
-              color: color,
-              opacity: opacity * 0.85,
-              rotate: degrees(angleDeg)
-            });
-          }
-
-        } else if (layout === 'grid') {
-          const stepX = width / 2.3;
-          const stepY = height / 3.3;
-
-          for (let x = -width * 0.2; x < width * 1.3; x += stepX) {
-            for (let y = -height * 0.2; y < height * 1.3; y += stepY) {
-              const startPt = getRotatedStartPoint(x, y, textWidth, fontSize, angleDeg);
-              page.drawText(mainText, {
-                x: startPt.x,
-                y: startPt.y,
-                size: fontSize,
-                font: fontToUse,
-                color: color,
-                opacity: opacity,
-                rotate: degrees(angleDeg)
-              });
-
-              if (sub) {
-                const subSize = fontSize * 0.4;
-                const subWidth = fontToUse.widthOfTextAtSize(sub, subSize);
-                const dist = fontSize * 0.65;
-                const subCx = x + dist * Math.sin(rad);
-                const subCy = y - dist * Math.cos(rad);
-                const subStart = getRotatedStartPoint(subCx, subCy, subWidth, subSize, angleDeg);
-
-                page.drawText(sub, {
-                  x: subStart.x,
-                  y: subStart.y,
-                  size: subSize,
-                  font: fontToUse,
-                  color: color,
-                  opacity: opacity * 0.8,
-                  rotate: degrees(angleDeg)
-                });
-              }
-            }
-          }
-
-        } else if (layout === 'bottom') {
-          page.drawText(mainText, {
-            x: width / 2 - (textWidth / 2),
-            y: 30,
-            size: fontSize * 0.6,
-            font: fontToUse,
-            color: color,
-            opacity: opacity
-          });
-
-        } else if (layout === 'top') {
-          page.drawText(mainText, {
-            x: width / 2 - (textWidth / 2),
-            y: height - 35,
-            size: fontSize * 0.6,
-            font: fontToUse,
-            color: color,
-            opacity: opacity
-          });
-        }
-      }
-
-      return await pdfDoc.save();
     }
 
     // Security Modal
@@ -1399,6 +3015,7 @@
       clearSelectedFiles();
       clearNamesInput();
       lastGeneratedZipBlob = null;
+      lastGeneratedTrackingPdfBlob = null;
       document.getElementById('successBox').classList.add('hidden');
       document.getElementById('progressSection').classList.add('hidden');
     }
